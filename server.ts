@@ -99,4 +99,50 @@ fastify.get('/', async function handler (request, reply) {
     `
 })
 
+// Dummy APIs
+fastify.get('/api/users', async function (request, reply) {
+  return {
+    status: 'success',
+    data: [
+      { id: 1, name: 'John Doe', email: 'john@example.com' },
+      { id: 2, name: 'Jane Smith', email: 'jane@example.com' },
+      { id: 3, name: 'Bob Johnson', email: 'bob@example.com' }
+    ]
+  }
+})
+
+fastify.get<{ Params: { id: string } }>('/api/users/:id', async function (request, reply) {
+  const { id } = request.params
+  return {
+    status: 'success',
+    data: { id: parseInt(id), name: 'John Doe', email: 'john@example.com' }
+  }
+})
+
+fastify.post<{ Body: { name: string; email: string } }>('/api/users', async function (request, reply) {
+  const { name, email } = request.body
+  return {
+    status: 'created',
+    data: { id: 4, name, email }
+  }
+})
+
+fastify.get('/api/posts', async function (request, reply) {
+  return {
+    status: 'success',
+    data: [
+      { id: 1, title: 'First Post', content: 'Hello World', author: 'John' },
+      { id: 2, title: 'Second Post', content: 'Fastify is awesome', author: 'Jane' }
+    ]
+  }
+})
+
+fastify.get('/api/health', async function (request, reply) {
+  return {
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  }
+})
+
 fastify.listen({ port: 3000 })

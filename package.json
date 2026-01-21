@@ -1,6 +1,9 @@
 {
   "name": "fastify",
   "type": "module",
+  "workspaces": [
+    "."
+  ],
   "dependencies": {
     "fastify": "5.6.1"
   },
