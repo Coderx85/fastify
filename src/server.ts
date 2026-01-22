@@ -15,9 +15,10 @@ export default async function fastifyServer(opt: FastifyServerOptions) {
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   });
 
-  // Auto-register routes
+  // Auto-register routes with /api prefix, ignoring the root index file
   await fastify.register(autoLoad, {
     dir: join(__dirname, "routes"),
+    prefix: "/api",
     forceESM: true,
     routeParams: true,
   });
