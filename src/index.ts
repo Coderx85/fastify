@@ -4,11 +4,15 @@ import { type FastifyServerOptions } from "fastify";
 
 const PORT = config.PORT;
 
+const isProduction = process.env.NODE_ENV === "production";
+
 const opt: FastifyServerOptions = {
   logger: {
-    transport: {
-      target: "pino-pretty",
-    },
+    transport: !isProduction
+      ? undefined
+      : {
+          target: "pino-pretty",
+        },
   },
   ignoreTrailingSlash: true,
 };
