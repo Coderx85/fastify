@@ -1,10 +1,12 @@
 {
   "name": "fastify",
   "type": "module",
-  "workspaces": [
-    "."
-  ],
+  "scripts": {
+    "dev": "node --watch run src/index.ts"
+  },
   "dependencies": {
+    "@fastify/autoload": "^6.3.1",
+    "@fastify/cors": "^11.2.0",
     "fastify": "5.6.1"
   },
   "devDependencies": {
