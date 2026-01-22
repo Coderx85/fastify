@@ -8,7 +8,7 @@ const isProduction = process.env.NODE_ENV === "production";
 
 const opt: FastifyServerOptions = {
   logger: {
-    transport: !isProduction
+    transport: isProduction
       ? undefined
       : {
           target: "pino-pretty",
