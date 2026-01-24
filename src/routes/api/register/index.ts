@@ -1,29 +1,20 @@
-import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
+import { FastifyInstance } from "fastify";
+import { ZodTypeProvider } from "fastify-type-provider-zod";
 import { users, userState } from "../../../lib/store.js";
-
-interface RegisterBody {
-  email: string;
-  password: string;
-}
+import { registerSchema } from "../../../schema/auth.js";
 
 // Simple password hashing (for demo only)
 const hashPassword = (password: string): string =>
   Buffer.from(password).toString("base64");
 
 export default async function registerRoute(fastify: FastifyInstance) {
-  fastify.post<{ Body: RegisterBody }>(
+  fastify.withTypeProvider<ZodTypeProvider>().post(
     "/",
-    async (
-      request: FastifyRequest<{ Body: RegisterBody }>,
-      reply: FastifyReply,
-    ) => {
+    {
+      schema: registerSchema,
+    },
+    async (request, reply) => {
       const { email, password } = request.body;
-
-      // Validate input
-      if (!email || !password) {
-        reply.status(400);
-        return { status: "error", message: "Email and password required" };
-      }
 
       // Check if user exists
       if (users.has(email)) {

@@ -6,6 +6,7 @@
 
 ### [PRINCIPLE_1_NAME]
 
+- Use pnpm for package management.
 <!-- Example: I. Library-First -->
 
 [PRINCIPLE_1_DESCRIPTION]
