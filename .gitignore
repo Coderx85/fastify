@@ -1,1 +1,23 @@
 .vercel
+
+# Node modules
+node_modules/
+
+# Build output
+dist/
+*.js
+*.d.ts
+
+# macOS system files
+.DS_Store
+/x
+# Debug Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+
+# Environment Variables
+.env
+.env.local
+.env.*.local

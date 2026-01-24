@@ -1,11 +1,9 @@
-import Fastify from 'fastify'
+import { FastifyInstance } from 'fastify';
 
-const fastify = Fastify({ logger: true })
-
-// Declare a route
-fastify.get('/', async function handler (request, reply) {
-  reply.type('text/html')
-  return `
+export default async function rootRoute(fastify: FastifyInstance) {
+  fastify.get("/", async function handler(request, reply) {
+    reply.type("text/html");
+    return `
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -92,11 +90,13 @@ fastify.get('/', async function handler (request, reply) {
           <div class="feature">
             <a href="https://fastify.dev" target="_blank" rel="noreferrer">Fastify docs</a>
           </div>
+          <div class="feature">
+            <a href="/dashboard" rel="noreferrer">Dashboard</a>
+          </div>
         </div>
       </div>
     </body>
     </html>
-    `
-})
-
-fastify.listen({ port: 3000 })
+    `;
+  });
+}
