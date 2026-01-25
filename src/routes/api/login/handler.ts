@@ -1,9 +1,9 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 
-import { verifyPassword } from "@/lib/hash";
-import { AuthBody } from "@/schema/auth";
-import { AuthContext } from "@/types/auth.t";
-import { users } from "@/lib/store";
+import { verifyPassword } from "@/lib/hash.js";
+import { AuthBody } from "@/schema/auth.js";
+import { AuthContext } from "@/types/auth.t.js";
+import { users } from "@/lib/store.js";
 
 export const loginRouteHandler = {
   handler: async (

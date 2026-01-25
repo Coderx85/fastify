@@ -1,7 +1,7 @@
 import { FastifyInstance } from "fastify";
 import { ZodTypeProvider } from "fastify-type-provider-zod";
 
-import { createUserSchema, getUserSchema } from "@/schema/user";
+import { createUserSchema, getUserSchema } from "@/schema/user.js";
 
 export default async function usersRoute(fastify: FastifyInstance) {
   // GET /api/users
