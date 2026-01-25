@@ -14,7 +14,9 @@ const opt: FastifyServerOptions = {
           target: "pino-pretty",
         },
   },
-  ignoreTrailingSlash: true,
+  routerOptions: {
+    ignoreTrailingSlash: true,
+  },
 };
 
 const app = await fastifyServer(opt);
