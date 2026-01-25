@@ -4,7 +4,7 @@ import { verifyPassword } from "@/lib/hash";
 import { AuthBody } from "@/schema/auth";
 import { AuthContext } from "@/types/auth.t";
 import { users } from "@/lib/store";
-import { sendError, sendResponse } from "@/lib/response";
+import { sendError, sendSuccess } from "@/lib/response";
 
 export const loginRouteHandler = {
   handler: async (
@@ -35,6 +35,6 @@ export const loginRouteHandler = {
       user: authContext.user,
     };
 
-    sendResponse(result, "Login successful", reply, 200);
+    sendSuccess(result, "Login successful", reply, 200);
   },
 };

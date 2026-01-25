@@ -1,6 +1,6 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import { AuthBody } from "@/schema/auth";
-import { users, userState, sendError, sendResponse, hashPassword } from "@/lib";
+import { users, userState, sendError, sendSuccess, hashPassword } from "@/lib";
 
 export const registerRouteHandler = {
   handler: async (
@@ -22,7 +22,7 @@ export const registerRouteHandler = {
     users.set(email, { id: userId, email, password: hashedPassword });
 
     // Return success with user data
-    return sendResponse(
+    return sendSuccess(
       { id: userId, email },
       "User registered successfully",
       reply,
