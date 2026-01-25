@@ -1,7 +1,8 @@
 import { FastifyInstance } from "fastify";
 import { ZodTypeProvider } from "fastify-type-provider-zod";
-import { users, userState } from "../../../lib/store.js";
-import { registerSchema } from "../../../schema/auth.js";
+
+import { registerSchema } from "@/schema/auth";
+import { users, userState } from "@/lib/store";
 
 // Simple password hashing (for demo only)
 const hashPassword = (password: string): string =>

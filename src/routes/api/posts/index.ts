@@ -1,13 +1,18 @@
-import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
+import { FastifyInstance } from "fastify";
 
 export default async function postsRoute(fastify: FastifyInstance) {
-  fastify.get('/', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get("/", async (request, reply) => {
     return {
-      status: 'success',
+      status: "success",
       data: [
-        { id: 1, title: 'First Post', content: 'Hello World', author: 'John' },
-        { id: 2, title: 'Second Post', content: 'Fastify is awesome', author: 'Jane' }
-      ]
-    }
-  })
+        { id: 1, title: "First Post", content: "Hello World", author: "John" },
+        {
+          id: 2,
+          title: "Second Post",
+          content: "Fastify is awesome",
+          author: "Jane",
+        },
+      ],
+    };
+  });
 }

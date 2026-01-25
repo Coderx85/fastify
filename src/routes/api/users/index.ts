@@ -1,5 +1,6 @@
 import { FastifyInstance } from "fastify";
 import { ZodTypeProvider } from "fastify-type-provider-zod";
+
 import { createUserSchema, getUserSchema } from "@/schema/user";
 
 export default async function usersRoute(fastify: FastifyInstance) {
