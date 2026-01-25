@@ -1,5 +1,5 @@
-import { config } from "./lib/config.js";
-import fastifyServer from "./server.js";
+import { config } from "./lib/config";
+import fastifyServer from "./server";
 import { type FastifyServerOptions } from "fastify";
 
 const PORT = config.PORT;
