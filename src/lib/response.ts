@@ -8,7 +8,7 @@ import { FastifyReply } from "fastify";
  * @param reply - The Fastify reply object to send the response.
  * @param statusCode - HTTP status code (default is 200 or 201).
  **/
-export function sendResponse<T>(
+export function sendSuccess<T>(
   data: T,
   message: string,
   reply: FastifyReply,

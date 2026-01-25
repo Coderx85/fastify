@@ -21,3 +21,5 @@ yarn-debug.log*
 .env
 .env.local
 .env.*.local
+
+specs/
