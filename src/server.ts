@@ -26,18 +26,8 @@ export default async function fastifyServer(opt: FastifyServerOptions) {
 
   // Auto-register API routes
   await fastify.register(autoLoad, {
-    dir: join(__dirname, "routes/api"),
-    prefix: "/api",
-    forceESM: true,
-    routeParams: true,
-  });
-
-  // Auto-register non-API routes
-  await fastify.register(autoLoad, {
     dir: join(__dirname, "routes"),
-    forceESM: true,
     routeParams: true,
-    ignorePattern: /api/,
   });
 
   return fastify;
