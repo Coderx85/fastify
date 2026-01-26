@@ -1,5 +1,5 @@
 import { FastifyReply, FastifyRequest } from "fastify";
-import { AuthBody } from "@/schema/auth";
+import { AuthBody } from "@/schema/auth.schema";
 import { users, userState, sendError, sendSuccess, hashPassword } from "@/lib";
 
 export const registerRouteHandler = {

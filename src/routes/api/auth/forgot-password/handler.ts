@@ -1,5 +1,5 @@
 import { FastifyReply, FastifyRequest } from "fastify";
-import { ForgotPasswordBody } from "@/schema/auth";
+import { ForgotPasswordBody } from "@/schema/auth.schema";
 import { users } from "@/lib/store";
 import { generateResetToken } from "@/lib/token";
 import { sendSuccess } from "@/lib/response";

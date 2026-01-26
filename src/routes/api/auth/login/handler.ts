@@ -1,7 +1,7 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 
 import { verifyPassword } from "@/lib/hash";
-import { AuthBody } from "@/schema/auth";
+import { AuthBody } from "@/schema/auth.schema";
 import { AuthContext } from "@/types/auth.t";
 import { users } from "@/lib/store";
 import { sendError, sendSuccess } from "@/lib/response";
