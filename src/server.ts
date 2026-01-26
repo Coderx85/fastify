@@ -9,6 +9,8 @@ import {
   validatorCompiler,
 } from "fastify-type-provider-zod";
 
+import dbPlugin from "./db";
+
 export default async function fastifyServer(opt: FastifyServerOptions) {
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = dirname(__filename);
@@ -23,6 +25,9 @@ export default async function fastifyServer(opt: FastifyServerOptions) {
     origin: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   });
+
+  // Register the database plugin
+  await fastify.register(dbPlugin);
 
   // Auto-register API routes
   await fastify.register(autoLoad, {

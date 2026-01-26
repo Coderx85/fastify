@@ -1,5 +1,7 @@
 import { randomBytes } from "crypto";
-import { passwordResetTokens } from "./store";
+
+type TPasswordResetToken = { userId: number; expiresAt: Date };
+const passwordResetTokens = new Map<string, TPasswordResetToken>();
 
 const TOKEN_EXPIRATION_MINUTES = 60;
 
