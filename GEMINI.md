@@ -50,3 +50,11 @@ Since `package.json` currently lacks a `scripts` section, the server is likely r
 -   [ ] **Scripts**: Add `start`, `dev`, and `build` scripts to `package.json`.
 -   [ ] **Persistence**: Replace in-memory storage with a real database (e.g., SQLite, PostgreSQL).
 -   [ ] **Security**: Replace base64 hashing with robust hashing (e.g., bcrypt/argon2) and implement proper JWT handling.
+
+## Recent Changes
+- 001-db-drizzle-pglite: Added TypeScript 5.8.3 + Fastify 5.6.1, Drizzle ORM, PGlite
+- 001-db-drizzle-pglite: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
+
+## Active Technologies
+- TypeScript 5.8.3 + Fastify 5.6.1, Drizzle ORM, PGlite (001-db-drizzle-pglite)
+- PGlite (001-db-drizzle-pglite)
