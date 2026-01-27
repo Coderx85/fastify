@@ -1,9 +1,11 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import { ResetPasswordBody } from "@/schema/auth.schema";
-import { users } from "@/lib/store";
+import { users } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { validateResetToken, deleteResetToken } from "@/lib/token";
 import { hashPassword } from "@/lib/hash";
 import { sendSuccess, sendError } from "@/lib/response";
+import { db } from "@/db";
 
 export const resetPasswordHandler = {
   handler: async (
@@ -18,7 +20,11 @@ export const resetPasswordHandler = {
       return sendError("INVALID OR EXPIRED TOKEN", "unauthorized", reply, 401);
     }
 
-    const user = Array.from(users.values()).find((u) => u.id === userId);
+    const foundUsers = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId));
+    const user = foundUsers[0];
 
     if (!user) {
       // This case should be rare if the token is valid
@@ -26,15 +32,18 @@ export const resetPasswordHandler = {
     }
 
     // Hash the new password
-    const hashedPassword = await hashPassword(password);
+    const hashedPassword = hashPassword(password);
 
     // Update user's password
-    users.set(user.email, { ...user, password: hashedPassword });
+    await db
+      .update(users)
+      .set({ password: hashedPassword })
+      .where(eq(users.id, userId));
 
     // Delete the token so it can't be reused
     deleteResetToken(token);
 
-    return sendSuccess(
+    sendSuccess(
       { passwordReset: true },
       "PASSWORD RESET SUCCESSFUL",
       reply,

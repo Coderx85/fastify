@@ -1,19 +1,23 @@
 import { FastifyInstance } from "fastify";
 import { ZodTypeProvider } from "fastify-type-provider-zod";
+import { eq } from "drizzle-orm";
 
 import { createUserSchema, getUserSchema } from "@/schema/user.schema";
+import { users } from "@/db/schema";
+import { hashPassword } from "@/lib/hash";
+import { sendError, sendSuccess } from "@/lib/response";
 
 export default async function usersRoute(fastify: FastifyInstance) {
   // GET /api/users
   fastify.get("/", async (request, reply) => {
-    return {
-      status: "success",
-      data: [
-        { id: 1, name: "John Doe", email: "john@example.com" },
-        { id: 2, name: "Jane Smith", email: "jane@example.com" },
-        { id: 3, name: "Bob Johnson", email: "bob@example.com" },
-      ],
-    };
+    const { db } = request.server;
+    const allUsers = await db.select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+    }).from(users);
+    
+    sendSuccess(allUsers, "Users retrieved successfully", reply, 200);
   });
 
   // GET /api/users/:id
@@ -24,10 +28,21 @@ export default async function usersRoute(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id } = request.params;
-      return {
-        status: "success",
-        data: { id, name: "John Doe", email: "john@example.com" },
-      };
+      const { db } = request.server;
+
+      const foundUsers = await db.select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+      }).from(users).where(eq(users.id, id));
+
+      const user = foundUsers[0];
+
+      if (!user) {
+        return sendError("User not found", "NOT_FOUND", reply, 404);
+      }
+
+      sendSuccess(user, "User retrieved successfully", reply, 200);
     },
   );
 
@@ -38,11 +53,28 @@ export default async function usersRoute(fastify: FastifyInstance) {
       schema: createUserSchema,
     },
     async (request, reply) => {
-      const { name, email } = request.body;
-      return {
-        status: "created",
-        data: { id: 4, name, email },
-      };
+      const { name, email, password } = request.body;
+      const { db } = request.server;
+
+      // Check if email exists
+      const existingUser = await db.select().from(users).where(eq(users.email, email));
+      if (existingUser.length > 0) {
+          return sendError("User with this email already exists", "CONFLICT", reply, 409);
+      }
+
+      const hashedPassword = hashPassword(password);
+
+      const newUser = await db.insert(users).values({
+        name,
+        email,
+        password: hashedPassword,
+      }).returning({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+      });
+
+      sendSuccess(newUser[0], "User created successfully", reply, 201);
     },
   );
 }

@@ -1,8 +1,10 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import { ForgotPasswordBody } from "@/schema/auth.schema";
-import { users } from "@/lib/store";
+import { users } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { generateResetToken } from "@/lib/token";
 import { sendSuccess } from "@/lib/response";
+import { db } from "@/db";
 
 export const forgotPasswordHandler = {
   handler: async (
@@ -12,7 +14,11 @@ export const forgotPasswordHandler = {
     const { email } = request.body;
 
     // Find user by email
-    const user = Array.from(users.values()).find((u) => u.email === email);
+    const foundUsers = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email));
+    const user = foundUsers[0];
 
     if (user) {
       // Generate a reset token
@@ -32,6 +38,6 @@ export const forgotPasswordHandler = {
     };
 
     // Always send a generic success message.
-    return sendSuccess(data, "MESSAGE SENT SUCCESSFULLY", reply, 200);
+    sendSuccess(data, "MESSAGE SENT SUCCESSFULLY", reply, 200);
   },
 };
