@@ -4,6 +4,7 @@ import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { generateResetToken } from "@/lib/token";
 import { sendSuccess } from "@/lib/response";
+import { db } from "@/db";
 
 export const forgotPasswordHandler = {
   handler: async (
@@ -11,10 +12,12 @@ export const forgotPasswordHandler = {
     reply: FastifyReply,
   ) => {
     const { email } = request.body;
-    const { db } = request.server;
 
     // Find user by email
-    const foundUsers = await db.select().from(users).where(eq(users.email, email));
+    const foundUsers = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email));
     const user = foundUsers[0];
 
     if (user) {

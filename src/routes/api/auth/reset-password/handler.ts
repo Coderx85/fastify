@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { validateResetToken, deleteResetToken } from "@/lib/token";
 import { hashPassword } from "@/lib/hash";
 import { sendSuccess, sendError } from "@/lib/response";
+import { db } from "@/db";
 
 export const resetPasswordHandler = {
   handler: async (
@@ -12,7 +13,6 @@ export const resetPasswordHandler = {
     reply: FastifyReply,
   ) => {
     const { token, password } = request.body;
-    const { db } = request.server;
 
     const userId = validateResetToken(token);
 
@@ -20,7 +20,10 @@ export const resetPasswordHandler = {
       return sendError("INVALID OR EXPIRED TOKEN", "unauthorized", reply, 401);
     }
 
-    const foundUsers = await db.select().from(users).where(eq(users.id, userId));
+    const foundUsers = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId));
     const user = foundUsers[0];
 
     if (!user) {
@@ -32,7 +35,10 @@ export const resetPasswordHandler = {
     const hashedPassword = hashPassword(password);
 
     // Update user's password
-    await db.update(users).set({ password: hashedPassword }).where(eq(users.id, userId));
+    await db
+      .update(users)
+      .set({ password: hashedPassword })
+      .where(eq(users.id, userId));
 
     // Delete the token so it can't be reused
     deleteResetToken(token);

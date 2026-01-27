@@ -6,6 +6,7 @@ import { AuthContext } from "@/types/auth.t";
 import { users } from "@/db/schema";
 import { sendError, sendSuccess } from "@/lib/response";
 import { eq } from "drizzle-orm";
+import { db } from "@/db";
 
 export const loginRouteHandler = {
   handler: async (
@@ -13,10 +14,12 @@ export const loginRouteHandler = {
     reply: FastifyReply,
   ) => {
     const { email, password } = request.body;
-    const { db } = request.server;
 
     // Find user
-    const existingUsers = await db.select().from(users).where(eq(users.email, email));
+    const existingUsers = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email));
     const user = existingUsers[0];
 
     if (!user) {
