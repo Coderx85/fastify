@@ -15,3 +15,11 @@ export const posts = pgTable("posts", {
   authorId: integer("author_id").references(() => users.id).notNull(),
   publishedAt: timestamp("published_at"),
 });
+
+export const products = pgTable("products", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  price: integer("price").notNull(), // in cents
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
