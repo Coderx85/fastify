@@ -1,35 +1,15 @@
 import { z } from "zod";
 import { categoryEnumValues, product } from "@/db/schema";
 import { createSelectSchema } from "drizzle-zod";
+import { errorResponseSchema, successResponseSchema } from "@/types/api";
 
 // Base product schema
 export const productSchema = createSelectSchema(product);
-
-// ============ Response Schemas ============
-
-// Success response wrapper
-const successResponseSchema = <T extends z.ZodTypeAny>(dataSchema: T) =>
-  z.object({
-    ok: z.literal(true),
-    statusCode: z.number(),
-    message: z.string(),
-    data: dataSchema,
-  });
-
-// Error response schema
-export const errorResponseSchema = z.object({
-  ok: z.literal(false),
-  statusCode: z.number(),
-  message: z.string(),
-  error: z.string(),
-});
 
 // Products data schema (the data part of success response)
 export const productsDataSchema = z.object({
   products: z.array(productSchema),
 });
-
-// ============ Route Schemas ============
 
 // Get all products with optional category filter
 export const getProductsSchema = {
@@ -38,8 +18,6 @@ export const getProductsSchema = {
   }),
   response: {
     200: successResponseSchema(productsDataSchema),
-    404: errorResponseSchema,
-    500: errorResponseSchema,
   },
 };
 
@@ -50,8 +28,50 @@ export const getProductByIdSchema = {
   }),
   response: {
     200: successResponseSchema(z.object({ product: productSchema })),
-    404: errorResponseSchema,
-    500: errorResponseSchema,
+  },
+};
+
+export const createProductBodySchema = z.object({
+  name: z.string().min(1),
+  description: z.string().min(1),
+  price: z.number().int().positive(),
+  category: z.enum(categoryEnumValues),
+});
+
+export const createProductSchema = {
+  body: createProductBodySchema,
+  response: {
+    201: successResponseSchema(z.object({ product: productSchema })),
+  },
+};
+
+export const updateProductBodySchema = z.object({
+  name: z.string().optional(),
+  description: z.string().optional(),
+  price: z.number().int().positive().optional(),
+  category: z.enum(categoryEnumValues).optional(),
+});
+
+export const updateProductSchema = {
+  params: z.object({
+    productId: z.coerce.number().int().positive(),
+  }),
+  body: updateProductBodySchema,
+  response: {
+    200: successResponseSchema(z.object({ product: productSchema })),
+  },
+};
+
+// ============ Delete Product Schemas ============
+
+export const deleteProductSchema = {
+  params: z.object({
+    productId: z.coerce.number().int().positive(),
+  }),
+  response: {
+    200: successResponseSchema(
+      z.object({ deleted: z.boolean(), productId: z.number() }),
+    ),
   },
 };
 
@@ -60,10 +80,7 @@ export type GetProducts = z.infer<typeof productSchema>;
 export type GetProductsQuery = z.infer<typeof getProductsSchema.querystring>;
 export type GetProductByIdParams = z.infer<typeof getProductByIdSchema.params>;
 export type ProductsData = z.infer<typeof productsDataSchema>;
-export type SuccessResponse<T> = {
-  ok: true;
-  statusCode: number;
-  message: string;
-  data: T;
-};
-export type ErrorResponse = z.infer<typeof errorResponseSchema>;
+export type CreateProductBody = z.infer<typeof createProductBodySchema>;
+export type UpdateProductBody = z.infer<typeof updateProductBodySchema>;
+export type UpdateProductParams = z.infer<typeof updateProductSchema.params>;
+export type DeleteProductParams = z.infer<typeof deleteProductSchema.params>;
