@@ -45,12 +45,19 @@ export const createProductSchema = {
   },
 };
 
-export const updateProductBodySchema = z.object({
-  name: z.string().optional(),
-  description: z.string().optional(),
-  price: z.number().int().positive().optional(),
-  category: z.enum(categoryEnumValues).optional(),
-});
+export const updateProductBodySchema = z
+  .object({
+    name: z.string().optional(),
+    description: z.string().optional(),
+    price: z.number().int().positive().optional(),
+    category: z.enum(categoryEnumValues).optional(),
+  })
+  .refine(
+    (data) => Object.keys(data).length > 0,
+    {
+      message: "At least one field must be provided to update the product",
+    },
+  );
 
 export const updateProductSchema = {
   params: z.object({
