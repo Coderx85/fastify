@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { categoryEnumValues, product } from "@/db/schema";
 import { createSelectSchema } from "drizzle-zod";
-import { errorResponseSchema, successResponseSchema } from "@/types/api";
+import { successResponseSchema } from "@/types/api";
 
 // Base product schema
 export const productSchema = createSelectSchema(product);
@@ -52,12 +52,9 @@ export const updateProductBodySchema = z
     price: z.number().int().positive().optional(),
     category: z.enum(categoryEnumValues).optional(),
   })
-  .refine(
-    (data) => Object.keys(data).length > 0,
-    {
-      message: "At least one field must be provided to update the product",
-    },
-  );
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "At least one field must be provided to update the product",
+  });
 
 export const updateProductSchema = {
   params: z.object({

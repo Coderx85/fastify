@@ -15,6 +15,7 @@
     "fastify": "5.6.1",
     "fastify-plugin": "^5.1.0",
     "fastify-type-provider-zod": "^6.1.0",
+    "fastify-zod": "^1.4.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
