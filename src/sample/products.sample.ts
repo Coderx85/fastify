@@ -1,0 +1,60 @@
+import { TProduct } from "@/db/schema";
+
+export const productsSample: TProduct[] = [
+  {
+    id: 1,
+    name: "Product 1",
+    description: "Description 1",
+    price: 100,
+    category: "Books",
+    productId: 134213432,
+  },
+  {
+    id: 2,
+    name: "Product 2",
+    description: "Description 2",
+    price: 200,
+    category: "Books",
+    productId: 134213432,
+  },
+  {
+    id: 3,
+    name: "Product 3",
+    description: "Description 3",
+    price: 300,
+    category: "Books",
+    productId: 134213432,
+  },
+  {
+    id: 4,
+    name: "Product 4",
+    description: "Description 4",
+    price: 400,
+    category: "Electronics",
+    productId: 134213432,
+  },
+  {
+    id: 5,
+    name: "Product 5",
+    description: "Description 5",
+    price: 500,
+    category: "Furniture",
+    productId: 134213432,
+  },
+  {
+    id: 6,
+    name: "Product 6",
+    description: "Description 6",
+    price: 600,
+    category: "Clothing",
+    productId: 134213432,
+  },
+  {
+    id: 7,
+    name: "Product 7",
+    description: "Description 7",
+    price: 700,
+    category: "Clothing",
+    productId: 134213432,
+  },
+];
