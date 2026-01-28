@@ -184,6 +184,12 @@ export class OrderService {
     }
 
     const existingOrder = ordersSample[orderIndex];
+
+    // Status Guard: Cannot update cancelled orders
+    if (existingOrder.status === "cancelled") {
+      throw new Error(`Cannot update an order with status 'cancelled'`);
+    }
+
     const now = new Date();
 
     // Update order fields
@@ -238,6 +244,18 @@ export class OrderService {
 
     if (orderIndex === -1) {
       throw new Error(`Order with ID ${orderId} not found`);
+    }
+
+    const existingOrder = ordersSample[orderIndex];
+
+    // Status Guard: Cannot add products to delivered or cancelled orders
+    if (
+      existingOrder.status === "delivered" ||
+      existingOrder.status === "cancelled"
+    ) {
+      throw new Error(
+        `Cannot add products to an order that is '${existingOrder.status}'`,
+      );
     }
 
     // Find the product to get its price
@@ -304,7 +322,6 @@ export class OrderService {
     );
 
     // Update order
-    const existingOrder = ordersSample[orderIndex];
     const updatedOrder: TOrder = {
       ...existingOrder,
       totalAmount: newTotalAmount,
@@ -339,6 +356,18 @@ export class OrderService {
 
     if (orderIndex === -1) {
       throw new Error(`Order with ID ${orderId} not found`);
+    }
+
+    const existingOrder = ordersSample[orderIndex];
+
+    // Status Guard: Cannot remove products from delivered or cancelled orders
+    if (
+      existingOrder.status === "delivered" ||
+      existingOrder.status === "cancelled"
+    ) {
+      throw new Error(
+        `Cannot remove products from an order that is '${existingOrder.status}'`,
+      );
     }
 
     // Find the order product
@@ -376,7 +405,6 @@ export class OrderService {
     );
 
     // Update order
-    const existingOrder = ordersSample[orderIndex];
     const updatedOrder: TOrder = {
       ...existingOrder,
       totalAmount: newTotalAmount,
