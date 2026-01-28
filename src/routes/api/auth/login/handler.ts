@@ -2,7 +2,7 @@ import { FastifyReply, FastifyRequest } from "fastify";
 
 import { verifyPassword } from "@/lib/hash";
 import { AuthBody } from "@/schema/auth.schema";
-import { AuthContext } from "@/types/auth.t";
+import { AuthContext } from "@/types/api";
 import { users } from "@/db/schema";
 import { sendError, sendSuccess } from "@/lib/response";
 import { eq } from "drizzle-orm";

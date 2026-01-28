@@ -1,61 +1,211 @@
 import { FastifyReply, FastifyRequest } from "fastify";
-import { CreateProductInput } from "@/schema/product.schema";
-import { db } from "@/db";
-import { products } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import { sendSuccess, sendError } from "@/lib";
+import { sendError, sendSuccess } from "@/lib/response";
+import {
+  GetProductsQuery,
+  GetProductByIdParams,
+  CreateProductBody,
+  UpdateProductParams,
+  UpdateProductBody,
+  DeleteProductParams,
+} from "@/schema/product.schema";
+import { ProductService } from "@/modules/product.service";
 
-export async function createProductHandler(
-  request: FastifyRequest<{
-    Body: CreateProductInput;
-  }>,
-  reply: FastifyReply,
-) {
-  const product = await db.insert(products).values(request.body).returning();
+// Initialize service
+const productService = new ProductService();
 
-  if (!product) {
-    return sendError(
-      "Failed to create product",
-      "PRODUCT_NOT_CREATED",
-      reply,
-      500,
-    );
-  }
+/**
+ * Handler for getting all products (with optional category filter)
+ * GET /products
+ */
+export const getProductsHandler = {
+  handler: async (
+    request: FastifyRequest<{ Querystring: GetProductsQuery }>,
+    reply: FastifyReply,
+  ) => {
+    try {
+      const { category } = request.query;
 
-  return sendSuccess(product[0], "PRODUCT_CREATED_SUCCESSFULLY", reply, 201);
-}
+      // Get products - either all or filtered by category
+      const products = category
+        ? await productService.getProductByQuery(category)
+        : await productService.getAllProducts();
 
-export async function getProductsHandler(
-  request: FastifyRequest,
-  reply: FastifyReply,
-) {
-  const productsList = await db.query.products.findMany();
-  return sendSuccess(productsList, "PRODUCTS_FETCHED_SUCCESSFULLY", reply, 200);
-}
+      // Validate products
+      if (!products || products.length === 0) {
+        return sendError(
+          category
+            ? `No products found for category: ${category}`
+            : "No products found",
+          "NOT_FOUND",
+          reply,
+          404,
+        );
+      }
 
-export async function getProductByIdHandler(
-  request: FastifyRequest<{
-    Params: { id: number };
-  }>,
-  reply: FastifyReply,
-) {
-  try {
-    const { id } = request.params;
-    const product = await db.query.products.findFirst({
-      where: eq(products.id, id),
-    });
-
-    if (!product) {
-      return sendError(
-        "Failed to find product",
-        "PRODUCT_NOT_FOUND",
+      // Send success response
+      sendSuccess(
+        { products },
+        category
+          ? `Products in '${category}' fetched successfully`
+          : "All products fetched successfully",
         reply,
-        404,
+        200,
+      );
+    } catch (error) {
+      request.log.error(error);
+      return sendError(
+        "Failed to fetch products",
+        "INTERNAL_SERVER_ERROR",
+        reply,
+        500,
       );
     }
+  },
+};
 
-    return sendSuccess(product, "PRODUCT_FETCHED_SUCCESSFULLY", reply, 200);
-  } catch (error: unknown) {
-    return sendError(String(error), "FAILED_TO_FETCH_PRODUCT", reply, 404);
-  }
-}
+/**
+ * Handler for getting a single product by ID
+ * GET /products/:productId
+ */
+export const getProductByIdHandler = {
+  handler: async (
+    request: FastifyRequest<{ Params: GetProductByIdParams }>,
+    reply: FastifyReply,
+  ) => {
+    try {
+      const { productId } = request.params;
+
+      const product = await productService.getProductById(productId);
+
+      if (!product) {
+        return sendError(
+          `Product with ID ${productId} not found`,
+          "NOT_FOUND",
+          reply,
+          404,
+        );
+      }
+
+      sendSuccess({ product }, "Product fetched successfully", reply, 200);
+    } catch (error) {
+      request.log.error(error);
+      return sendError(
+        "Failed to fetch product",
+        "INTERNAL_SERVER_ERROR",
+        reply,
+        500,
+      );
+    }
+  },
+};
+
+/**
+ * Handler for creating a new product
+ * POST /products
+ */
+export const createProductHandler = {
+  handler: async (
+    request: FastifyRequest<{ Body: CreateProductBody }>,
+    reply: FastifyReply,
+  ) => {
+    try {
+      const result = await productService.createProduct(request.body);
+
+      sendSuccess(
+        { product: result },
+        "Product created successfully",
+        reply,
+        201,
+      );
+    } catch (error) {
+      request.log.error(error);
+      return sendError(
+        "Failed to create product",
+        "INTERNAL_SERVER_ERROR",
+        reply,
+        500,
+      );
+    }
+  },
+};
+
+/**
+ * Handler for updating a product
+ * PUT /products/:productId
+ */
+export const updateProductHandler = {
+  handler: async (
+    request: FastifyRequest<{
+      Params: UpdateProductParams;
+      Body: UpdateProductBody;
+    }>,
+    reply: FastifyReply,
+  ) => {
+    try {
+      const { productId } = request.params;
+      const result = await productService.updateProduct(
+        productId,
+        request.body,
+      );
+
+      if (!result) {
+        return sendError(
+          `Product with ID ${productId} not found`,
+          "NOT_FOUND",
+          reply,
+          404,
+        );
+      }
+
+      sendSuccess(
+        { product: result },
+        "Product updated successfully",
+        reply,
+        200,
+      );
+    } catch (error) {
+      request.log.error(error);
+      return sendError(
+        "Failed to update product",
+        "INTERNAL_SERVER_ERROR",
+        reply,
+        500,
+      );
+    }
+  },
+};
+
+/**
+ * Handler for deleting a product
+ * DELETE /products/:productId
+ */
+export const deleteProductHandler = {
+  handler: async (
+    request: FastifyRequest<{ Params: DeleteProductParams }>,
+    reply: FastifyReply,
+  ) => {
+    try {
+      const { productId } = request.params;
+      const result = await productService.deleteProduct(productId);
+
+      if (!result.deleted) {
+        return sendError(
+          `Product with ID ${productId} not found`,
+          "NOT_FOUND",
+          reply,
+          404,
+        );
+      }
+
+      sendSuccess(result, "Product deleted successfully", reply, 200);
+    } catch (error) {
+      request.log.error(error);
+      return sendError(
+        "Failed to delete product",
+        "INTERNAL_SERVER_ERROR",
+        reply,
+        500,
+      );
+    }
+  },
+};

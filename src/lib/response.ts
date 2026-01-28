@@ -1,4 +1,4 @@
-import { TResponse } from "@/types/auth.t";
+import { TResponse } from "@/types/api";
 import { FastifyReply } from "fastify";
 
 /**
