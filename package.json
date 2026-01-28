@@ -2,7 +2,8 @@
   "name": "fastify",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts"
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.3.15",
