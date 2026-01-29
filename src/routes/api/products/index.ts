@@ -28,7 +28,6 @@ import {
 export default async function productsRoute(fastify: FastifyInstance) {
   // Get all products (with optional category filter)
   fastify.withTypeProvider<ZodTypeProvider>().get("/", {
-    schema: getProductsSchema,
     handler: getProductsHandler.handler,
   });
 

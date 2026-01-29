@@ -26,15 +26,16 @@ export const orderStatusEnum = pgEnum("order_status", [
   "cancelled",
 ]);
 
-/**
- * User table
- *
- * @property id - User id
- * @property name - User name
- * @property email - User email
- * @property password - User password
- * @property createdAt - User created at
- */
+export const paymentStatusEnum = pgEnum("payment_status", [
+  "pending",
+  "succeeded",
+  "failed",
+]);
+
+export const paymentMethodEnum = pgEnum("payment_method", ["polar"]);
+
+export const currencyEnum = pgEnum("currency", ["usd"]);
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
@@ -43,16 +44,25 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-/**
- * Product table
- *
- * @property id - Product id
- * @property productId - Product id
- * @property name - Product name
- * @property description - Product description
- * @property price - Product price
- * @property category - Product category
- */
+export const payments = pgTable(
+  "payments",
+  {
+    id: varchar("id").primaryKey(), // from polar
+    orderId: integer("order_id")
+      .references(() => orders.id, { onDelete: "cascade" })
+      .notNull(),
+    amount: integer("amount").notNull(),
+    currency: currencyEnum("currency").notNull(),
+    status: paymentStatusEnum("status").notNull().default("pending"),
+    paymentMethod: paymentMethodEnum("payment_method").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("payments_order_id_idx").on(table.orderId),
+    index("payments_status_idx").on(table.status),
+  ],
+);
 export const product = pgTable(
   "product",
   {
@@ -69,19 +79,6 @@ export const product = pgTable(
   ],
 );
 
-/**
- * Order table
- *
- * @property id - Order id
- * @property userId - User id
- * @property totalAmount - Total order amount in cents
- * @property status - Order status
- * @property shippingAddress - Shipping address
- * @property paymentMethod - Payment method used
- * @property notes - Additional order notes
- * @property createdAt - Order created at
- * @property updatedAt - Order updated at
- */
 export const orders = pgTable(
   "orders",
   {
@@ -104,16 +101,6 @@ export const orders = pgTable(
   ],
 );
 
-/**
- * Order product table (junction table for many-to-many relationship)
- *
- * @property id - Order product id
- * @property orderId - Order id
- * @property productId - Product id
- * @property quantity - Product quantity
- * @property priceAtOrder - Price per unit at time of order (in cents)
- * @property createdAt - Record created at
- */
 export const orderProduct = pgTable(
   "order_product",
   {
