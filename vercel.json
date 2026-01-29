@@ -1,14 +1,14 @@
 {
-  "buildCommand": "pnpm build",
+  "buildCommand": "pnpm build:vercel",
   "functions": {
-    "dist/api/serverless.js": {
+    "api/index.js": {
       "runtime": "@vercel/node@3.0.0"
     }
   },
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/dist/api/serverless"
+      "destination": "/api/index"
     }
   ]
 }

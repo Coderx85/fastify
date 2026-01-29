@@ -1,17 +1,19 @@
 import "dotenv/config";
 import Fastify from "fastify";
-import autoLoad from "@fastify/autoload";
 import cors from "@fastify/cors";
-import { fileURLToPath } from "url";
-import { dirname, join } from "path";
 import {
   serializerCompiler,
   validatorCompiler,
 } from "fastify-type-provider-zod";
 import type { IncomingMessage, ServerResponse } from "http";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// Import routes manually for bundling (autoload doesn't work with bundlers)
+import rootRoute from "@/routes/index";
+import healthRoute from "@/routes/api/health/index";
+import paymentRoute from "@/routes/api/payment/index";
+import polarRoute from "@/routes/api/payment/polar/index";
+import productsRoute from "@/routes/api/products/index";
+import orderRoute from "@/routes/api/order/index";
 
 // Instantiate Fastify with serverless config
 const app = Fastify({
@@ -28,11 +30,13 @@ app.register(cors, {
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
 });
 
-// Auto-register API routes from src folder
-app.register(autoLoad, {
-  dir: join(__dirname, "../src/routes"),
-  routeParams: true,
-});
+// Register routes manually
+app.register(rootRoute);
+app.register(healthRoute, { prefix: "/api/health" });
+app.register(paymentRoute, { prefix: "/api/payment" });
+app.register(polarRoute, { prefix: "/api/payment/polar" });
+app.register(productsRoute, { prefix: "/api/products" });
+app.register(orderRoute, { prefix: "/api/order" });
 
 export default async (req: IncomingMessage, res: ServerResponse) => {
   await app.ready();

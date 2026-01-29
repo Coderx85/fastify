@@ -12,7 +12,7 @@ await esbuild.build({
   platform: "node",
   target: "node20",
   format: "esm",
-  outfile: join(rootDir, "api/index.mjs"),
+  outfile: join(rootDir, "api/index.js"),
   external: [
     // Don't bundle native/binary modules
     "@electric-sql/pglite",
@@ -24,13 +24,11 @@ await esbuild.build({
   banner: {
     js: `
 import { createRequire } from 'module';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { fileURLToPath as __fileURLToPath } from 'url';
+import { dirname as __dirname_fn } from 'path';
 const require = createRequire(import.meta.url);
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 `,
   },
 });
 
-console.log("✅ Serverless function bundled to api/index.mjs");
+console.log("✅ Serverless function bundled to api/index.js");
