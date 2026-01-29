@@ -1,5 +1,5 @@
 import { config } from "./lib/config";
-import fastifyServer from "./server";
+import { buildServer } from "./server";
 import { type FastifyServerOptions } from "fastify";
 
 const PORT = config.PORT;
@@ -19,7 +19,7 @@ const opt: FastifyServerOptions = {
   },
 };
 
-const app = await fastifyServer(opt);
+const app = await buildServer(opt);
 
 app.listen({ port: PORT }, (err, address) => {
   if (err) {
