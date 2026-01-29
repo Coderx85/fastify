@@ -27,13 +27,13 @@ This document explains the complete payment workflow implemented in this project
 
 ### Key Components
 
-| Component | Location | Purpose |
-|-----------|----------|---------|
-| **Polar Routes** | `src/routes/api/payment/polar/index.ts` | REST API endpoints for checkout, customers, subscriptions |
-| **Polar Backend Service** | `src/modules/payment/polar.service.ts` | Business logic for Polar API interactions |
-| **Polar Service (Middleware)** | `src/modules/payment/polar.ts` | Fastify checkout middleware |
-| **Webhooks** | `src/routes/api/webhooks/index.ts` | Handle Polar events (payments, subscriptions) |
-| **Config** | `src/lib/config.ts` | Environment configuration |
+| Component                      | Location                                | Purpose                                                   |
+| ------------------------------ | --------------------------------------- | --------------------------------------------------------- |
+| **Polar Routes**               | `src/routes/api/payment/polar/index.ts` | REST API endpoints for checkout, customers, subscriptions |
+| **Polar Backend Service**      | `src/modules/payment/polar.service.ts`  | Business logic for Polar API interactions                 |
+| **Polar Service (Middleware)** | `src/modules/payment/polar.ts`          | Fastify checkout middleware                               |
+| **Webhooks**                   | `src/routes/api/webhooks/index.ts`      | Handle Polar events (payments, subscriptions)             |
+| **Config**                     | `src/lib/config.ts`                     | Environment configuration                                 |
 
 ---
 
@@ -101,6 +101,7 @@ This document explains the complete payment workflow implemented in this project
 **Endpoint:** `POST /api/payment/polar/checkout`
 
 **Request:**
+
 ```json
 {
   "customerEmail": "user@example.com",
@@ -112,12 +113,14 @@ This document explains the complete payment workflow implemented in this project
 ```
 
 **What happens:**
-1. Your API calls `polarService.createCheckout()` 
+
+1. Your API calls `polarService.createCheckout()`
 2. Polar SDK sends request to `https://sandbox-api.polar.sh/v1/checkouts/`
 3. Polar creates a checkout session with your configured product
 4. Returns a checkout URL
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -144,15 +147,15 @@ This document explains the complete payment workflow implemented in this project
 
 Polar sends webhook events to `POST /api/webhooks/polar`:
 
-| Event | When Triggered | Action to Take |
-|-------|----------------|----------------|
-| `order.created` | Order is created | Log order |
-| `order.paid` | **Payment confirmed** | ✅ **Enable access in your database** |
-| `subscription.created` | Subscription created | Store subscription ID |
-| `subscription.active` | Subscription is active | Enable premium features |
-| `subscription.canceled` | User canceled | Keep access until period end |
-| `subscription.revoked` | Immediately revoked | Disable access immediately |
-| `customer.created` | New customer | Link to your user database |
+| Event                   | When Triggered         | Action to Take                        |
+| ----------------------- | ---------------------- | ------------------------------------- |
+| `order.created`         | Order is created       | Log order                             |
+| `order.paid`            | **Payment confirmed**  | ✅ **Enable access in your database** |
+| `subscription.created`  | Subscription created   | Store subscription ID                 |
+| `subscription.active`   | Subscription is active | Enable premium features               |
+| `subscription.canceled` | User canceled          | Keep access until period end          |
+| `subscription.revoked`  | Immediately revoked    | Disable access immediately            |
+| `customer.created`      | New customer           | Link to your user database            |
 
 ### 4. Verify User Access
 
@@ -161,6 +164,7 @@ After payment, verify user has access:
 **Endpoint:** `GET /api/payment/polar/access/user/:externalUserId`
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -195,55 +199,61 @@ RETURN_URL=http://localhost:3000
 
 ### Sandbox vs Production
 
-| Setting | Sandbox | Production |
-|---------|---------|------------|
-| `POLAR_SERVER` | `sandbox` | `production` |
-| API URL | `https://sandbox-api.polar.sh` | `https://api.polar.sh` |
-| Dashboard | `https://sandbox.polar.sh` | `https://polar.sh` |
-| Test Cards | ✅ Stripe test cards work | ❌ Real cards only |
-| Data | Isolated test data | Live customer data |
+| Setting        | Sandbox                        | Production             |
+| -------------- | ------------------------------ | ---------------------- |
+| `POLAR_SERVER` | `sandbox`                      | `production`           |
+| API URL        | `https://sandbox-api.polar.sh` | `https://api.polar.sh` |
+| Dashboard      | `https://sandbox.polar.sh`     | `https://polar.sh`     |
+| Test Cards     | ✅ Stripe test cards work      | ❌ Real cards only     |
+| Data           | Isolated test data             | Live customer data     |
 
 ---
 
 ## API Endpoints Reference
 
 ### Checkout
-| Method | Endpoint | Description |
-|--------|----------|-------------|
+
+| Method | Endpoint                      | Description             |
+| ------ | ----------------------------- | ----------------------- |
 | `POST` | `/api/payment/polar/checkout` | Create checkout session |
 
 ### Customers
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/payment/polar/customers` | List all customers |
-| `GET` | `/api/payment/polar/customers/:customerId` | Get customer by ID |
-| `GET` | `/api/payment/polar/customers/external/:externalId` | Get by your user ID |
-| `GET` | `/api/payment/polar/customers/:customerId/subscriptions` | Get customer subscriptions |
-| `GET` | `/api/payment/polar/customers/:customerId/orders` | Get customer orders |
-| `GET` | `/api/payment/polar/customers/:customerId/state` | Get full customer state |
+
+| Method | Endpoint                                                 | Description                |
+| ------ | -------------------------------------------------------- | -------------------------- |
+| `GET`  | `/api/payment/polar/customers`                           | List all customers         |
+| `GET`  | `/api/payment/polar/customers/:customerId`               | Get customer by ID         |
+| `GET`  | `/api/payment/polar/customers/external/:externalId`      | Get by your user ID        |
+| `GET`  | `/api/payment/polar/customers/:customerId/subscriptions` | Get customer subscriptions |
+| `GET`  | `/api/payment/polar/customers/:customerId/orders`        | Get customer orders        |
+| `GET`  | `/api/payment/polar/customers/:customerId/state`         | Get full customer state    |
 
 ### Subscriptions
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/payment/polar/subscriptions/:subscriptionId` | Get subscription |
-| `POST` | `/api/payment/polar/subscriptions/:subscriptionId/cancel` | Cancel at period end |
-| `DELETE` | `/api/payment/polar/subscriptions/:subscriptionId` | Revoke immediately |
+
+| Method   | Endpoint                                                  | Description          |
+| -------- | --------------------------------------------------------- | -------------------- |
+| `GET`    | `/api/payment/polar/subscriptions/:subscriptionId`        | Get subscription     |
+| `POST`   | `/api/payment/polar/subscriptions/:subscriptionId/cancel` | Cancel at period end |
+| `DELETE` | `/api/payment/polar/subscriptions/:subscriptionId`        | Revoke immediately   |
 
 ### Products
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/payment/polar/products` | List all products |
+
+| Method | Endpoint                      | Description       |
+| ------ | ----------------------------- | ----------------- |
+| `GET`  | `/api/payment/polar/products` | List all products |
 
 ### Access Control
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/payment/polar/access/user/:externalUserId` | Check user access |
-| `GET` | `/api/payment/polar/access/user/:externalUserId/tier` | Get user plan tier |
+
+| Method | Endpoint                                              | Description        |
+| ------ | ----------------------------------------------------- | ------------------ |
+| `GET`  | `/api/payment/polar/access/user/:externalUserId`      | Check user access  |
+| `GET`  | `/api/payment/polar/access/user/:externalUserId/tier` | Get user plan tier |
 
 ### Status
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/payment/polar/status` | Check Polar integration status |
+
+| Method | Endpoint                    | Description                    |
+| ------ | --------------------------- | ------------------------------ |
+| `GET`  | `/api/payment/polar/status` | Check Polar integration status |
 
 ---
 
@@ -251,10 +261,10 @@ RETURN_URL=http://localhost:3000
 
 ### Test Card Numbers
 
-| Card Number | Description |
-|-------------|-------------|
+| Card Number           | Description        |
+| --------------------- | ------------------ |
 | `4242 4242 4242 4242` | Successful payment |
-| `4000 0000 0000 0002` | Declined |
+| `4000 0000 0000 0002` | Declined           |
 | `4000 0000 0000 9995` | Insufficient funds |
 
 **Expiry:** Any future date  
@@ -263,11 +273,13 @@ RETURN_URL=http://localhost:3000
 ### Testing Flow
 
 1. Start your server:
+
    ```bash
    pnpm dev
    ```
 
 2. Create a checkout:
+
    ```bash
    curl -X POST http://localhost:3000/api/payment/polar/checkout \
      -H "Content-Type: application/json" \
@@ -303,24 +315,24 @@ Webhooks({
 
 ### PolarBackendService (`src/modules/payment/polar.service.ts`)
 
-| Method | Description |
-|--------|-------------|
-| `createCheckout(params)` | Create a new checkout session |
-| `getCheckout(checkoutId)` | Get checkout details |
-| `createCustomer(params)` | Create a new customer |
-| `getCustomer(customerId)` | Get customer by Polar ID |
-| `getCustomerByExternalId(externalId)` | Get customer by your user ID |
-| `listCustomers(limit)` | List all customers |
-| `getCustomerSubscriptions(customerId)` | Get customer's subscriptions |
-| `getSubscription(subscriptionId)` | Get subscription details |
-| `hasActiveSubscription(customerId, productId?)` | Check active subscription |
-| `cancelSubscriptionAtPeriodEnd(subscriptionId)` | Graceful cancellation |
-| `revokeSubscription(subscriptionId)` | Immediate revocation |
-| `listProducts()` | List organization products |
-| `getProduct(productId)` | Get product details |
-| `getCustomerOrders(customerId)` | Get customer's orders |
-| `checkUserAccess(userExternalId)` | Check if user has access |
-| `getUserPlanTier(userExternalId)` | Get user's plan tier |
+| Method                                          | Description                   |
+| ----------------------------------------------- | ----------------------------- |
+| `createCheckout(params)`                        | Create a new checkout session |
+| `getCheckout(checkoutId)`                       | Get checkout details          |
+| `createCustomer(params)`                        | Create a new customer         |
+| `getCustomer(customerId)`                       | Get customer by Polar ID      |
+| `getCustomerByExternalId(externalId)`           | Get customer by your user ID  |
+| `listCustomers(limit)`                          | List all customers            |
+| `getCustomerSubscriptions(customerId)`          | Get customer's subscriptions  |
+| `getSubscription(subscriptionId)`               | Get subscription details      |
+| `hasActiveSubscription(customerId, productId?)` | Check active subscription     |
+| `cancelSubscriptionAtPeriodEnd(subscriptionId)` | Graceful cancellation         |
+| `revokeSubscription(subscriptionId)`            | Immediate revocation          |
+| `listProducts()`                                | List organization products    |
+| `getProduct(productId)`                         | Get product details           |
+| `getCustomerOrders(customerId)`                 | Get customer's orders         |
+| `checkUserAccess(userExternalId)`               | Check if user has access      |
+| `getUserPlanTier(userExternalId)`               | Get user's plan tier          |
 
 ---
 
