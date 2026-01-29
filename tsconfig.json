@@ -36,6 +36,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "api/serverless.ts"],
+  "include": ["src", "api/_serverless.ts"],
   "exclude": ["node_modules", "dist"]
 }

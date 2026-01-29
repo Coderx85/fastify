@@ -1,16 +1,10 @@
 {
   "installCommand": "pnpm install",
   "buildCommand": "pnpm build:vercel",
-  "outputDirectory": ".",
-  "functions": {
-    "api/*.js": {
-      "runtime": "@vercel/node@3.0.0"
-    }
-  },
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/api/index"
+      "destination": "/api"
     }
   ]
 }

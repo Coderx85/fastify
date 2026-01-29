@@ -7,7 +7,7 @@ const __dirname = dirname(__filename);
 const rootDir = join(__dirname, "..");
 
 await esbuild.build({
-  entryPoints: [join(rootDir, "api/serverless.ts")],
+  entryPoints: [join(rootDir, "api/_serverless.ts")],
   bundle: true,
   platform: "node",
   target: "node20",
