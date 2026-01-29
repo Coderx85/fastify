@@ -7,7 +7,7 @@ import {
 } from "fastify-type-provider-zod";
 import type { IncomingMessage, ServerResponse } from "http";
 
-// Import routes manually for bundling (autoload doesn't work with bundlers)
+// Import routes manually (esbuild resolves @/* aliases during bundling)
 import rootRoute from "@/routes/index";
 import healthRoute from "@/routes/api/health/index";
 import paymentRoute from "@/routes/api/payment/index";
