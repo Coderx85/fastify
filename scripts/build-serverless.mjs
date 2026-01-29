@@ -15,7 +15,7 @@ const aliasPlugin = {
     build.onResolve({ filter: /^@\// }, (args) => {
       const relativePath = args.path.replace(/^@\//, "");
       const basePath = join(rootDir, "src", relativePath);
-      
+
       // Try different extensions
       const extensions = [".ts", ".tsx", ".js", ".jsx", ""];
       for (const ext of extensions) {
@@ -29,7 +29,7 @@ const aliasPlugin = {
           return { path: indexPath };
         }
       }
-      
+
       return { path: basePath + ".ts" };
     });
   },
