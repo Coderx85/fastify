@@ -34532,7 +34532,6 @@ __export(config_exports, {
 var config2;
 var init_config = __esm({
   "src/lib/config.ts"() {
-    "use strict";
     config2 = {
       PORT: process.env.PORT ? Number(process.env.PORT) : 3e3,
       // Polar.sh Configuration

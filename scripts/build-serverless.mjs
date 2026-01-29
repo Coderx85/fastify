@@ -1,10 +1,39 @@
 import * as esbuild from "esbuild";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import { existsSync } from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const rootDir = join(__dirname, "..");
+
+// Custom plugin to resolve @/* imports
+const aliasPlugin = {
+  name: "alias",
+  setup(build) {
+    // Resolve @/* to src/*
+    build.onResolve({ filter: /^@\// }, (args) => {
+      const relativePath = args.path.replace(/^@\//, "");
+      const basePath = join(rootDir, "src", relativePath);
+      
+      // Try different extensions
+      const extensions = [".ts", ".tsx", ".js", ".jsx", ""];
+      for (const ext of extensions) {
+        const fullPath = basePath + ext;
+        if (existsSync(fullPath)) {
+          return { path: fullPath };
+        }
+        // Also try index files
+        const indexPath = join(basePath, `index${ext}`);
+        if (existsSync(indexPath)) {
+          return { path: indexPath };
+        }
+      }
+      
+      return { path: basePath + ".ts" };
+    });
+  },
+};
 
 await esbuild.build({
   entryPoints: [join(rootDir, "api/_serverless.ts")],
@@ -13,14 +42,12 @@ await esbuild.build({
   target: "node20",
   format: "esm",
   outfile: join(rootDir, "api/index.js"),
+  plugins: [aliasPlugin],
   external: [
     // Don't bundle native/binary modules
     "@electric-sql/pglite",
     "pg-native",
   ],
-  alias: {
-    "@": join(rootDir, "src"),
-  },
   banner: {
     js: `
 import { createRequire } from 'module';
