@@ -1,12 +1,10 @@
 # Source files (already bundled into api/index.js)
 src/
-scripts/
 api/_serverless.ts
 
 # Config files not needed at runtime
 drizzle.config.ts
 vitest.config.ts
-tsconfig.json
 
 # Test files
 **/*.test.ts
