@@ -1,13 +1,20 @@
 // import { db } from "@/db";
 // import { product, TCategoryEnumValues } from "@/db/schema";
 import { TCategoryEnumValues, TProduct } from "@/db/schema";
+import { config } from "@/lib/config";
 import {
   productsSample,
   getNextId,
   getNextProductId,
 } from "@/sample/products.sample";
 import { CreateProductBody, UpdateProductBody } from "@/schema/product.schema";
+import { Polar } from "@polar-sh/sdk";
 // import { eq } from "drizzle-orm";
+
+const polar = new Polar({
+  accessToken: config.POLAR_ACCESS_TOKEN,
+  server: "sandbox",
+});
 
 export class ProductService {
   /**
@@ -16,8 +23,36 @@ export class ProductService {
    */
   async getAllProducts() {
     // const products = await db.select().from(product);
-    const products = productsSample;
-    return products;
+    // return products;
+
+    const products = await polar.products.list({
+      organizationId: config.POLAR_ORGANIZATION_ID,
+    });
+
+    console.log(products);
+
+    const result = products.result.items;
+    const productsData: TProduct[] = result.map((item) => {
+      // Safely get the first price and its amount
+      const firstPrice =
+        item.prices && item.prices.length > 0 ? item.prices[0] : null;
+      let priceAmount = 0;
+
+      if (firstPrice && "priceAmount" in firstPrice) {
+        priceAmount = firstPrice.priceAmount;
+      }
+
+      return {
+        // Polar IDs are strings, so we provide default numeric IDs for the local schema
+        id: 0,
+        productId: 0,
+        name: item.name || "",
+        description: item.description || "",
+        price: priceAmount,
+        category: "Books",
+      };
+    });
+    return productsData;
   }
 
   /**

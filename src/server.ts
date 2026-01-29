@@ -1,4 +1,7 @@
-import Fastify, { type FastifyServerOptions } from "fastify";
+import Fastify, {
+  type FastifyServerOptions,
+  type FastifyInstance,
+} from "fastify";
 import autoLoad from "@fastify/autoload";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
@@ -8,13 +11,13 @@ import {
   serializerCompiler,
   validatorCompiler,
 } from "fastify-type-provider-zod";
+import fp from "fastify-plugin";
 
-export default async function fastifyServer(opt: FastifyServerOptions) {
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = dirname(__filename);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-  const fastify = Fastify(opt).withTypeProvider<ZodTypeProvider>();
-
+// Plugin version for serverless deployment
+async function fastifyServerPlugin(fastify: FastifyInstance) {
   // Set the validator and serializer compilers
   fastify.setValidatorCompiler(validatorCompiler);
   fastify.setSerializerCompiler(serializerCompiler);
@@ -29,6 +32,16 @@ export default async function fastifyServer(opt: FastifyServerOptions) {
     dir: join(__dirname, "routes"),
     routeParams: true,
   });
+}
 
+// Export as a Fastify plugin for serverless
+export default fp(fastifyServerPlugin, {
+  name: "fastify-server",
+});
+
+// Build function for standalone server
+export async function buildServer(opt: FastifyServerOptions) {
+  const fastify = Fastify(opt).withTypeProvider<ZodTypeProvider>();
+  await fastify.register(fastifyServerPlugin);
   return fastify;
 }
