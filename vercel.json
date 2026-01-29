@@ -1,6 +1,12 @@
 {
   "installCommand": "pnpm install",
   "buildCommand": "pnpm build:vercel",
+  "functions": {
+    "api/index.js": {
+      "runtime": "nodejs20.x",
+      "includeFiles": "api/index.js"
+    }
+  },
   "rewrites": [
     {
       "source": "/(.*)",
