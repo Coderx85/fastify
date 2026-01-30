@@ -1,22 +1,22 @@
 import { z } from "zod";
+import { users } from "@/db/schema";
+import { createInsertSchema } from "drizzle-zod";
 
 export const loginSchema = {
-  body: z.object({
-    email: z.string().email(),
-    password: z.string().min(6),
-  }),
+  body: createInsertSchema(users).pick({ email: true, password: true }),
 };
 
 export const registerSchema = {
-  body: z.object({
-    email: z.string().email(),
-    password: z.string().min(6),
+  body: createInsertSchema(users).pick({
+    name: true,
+    email: true,
+    password: true,
   }),
 };
 
 export const forgotPasswordSchema = {
-  body: z.object({
-    email: z.string().regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/),
+  body: createInsertSchema(users).pick({
+    email: true,
   }),
 };
 

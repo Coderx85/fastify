@@ -25,12 +25,13 @@ export const registerRouteHandler = {
 
     // Create user
     const hashedPassword = hashPassword(password);
-    const newUser = await db
+    
+    const [newUser] = await db
       .insert(users)
       .values({
         email,
         password: hashedPassword,
-        name: email, // Using email as name for now, as name is not in the auth body
+        name: email,
       })
       .returning({
         id: users.id,
@@ -38,6 +39,6 @@ export const registerRouteHandler = {
       });
 
     // Return success with user data
-    return sendSuccess(newUser[0], "User registered successfully", reply, 201);
+    return sendSuccess(newUser, "User registered successfully", reply, 201);
   },
 };
