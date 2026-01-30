@@ -15,8 +15,6 @@ export const loginRouteHandler = {
   ) => {
     const { email, password } = request.body;
 
-    const newHashedPassword = hashPassword(password);
-
     // Find user
     const [user] = await db.select().from(users).where(eq(users.email, email));
 
