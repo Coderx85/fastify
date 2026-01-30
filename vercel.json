@@ -1,8 +1,15 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "installCommand": "pnpm install",
   "buildCommand": "pnpm build:vercel",
   "outputDirectory": ".",
+  "functions": {
+    "api/index.js": {
+      "runtime": "nodejs20.x",
+      "includeFiles": "api/index.js"
+    }
+  },
   "rewrites": [
     {
       "source": "/(.*)",
