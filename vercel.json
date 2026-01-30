@@ -6,8 +6,8 @@
   "outputDirectory": ".",
   "functions": {
     "api/index.js": {
-      "runtime": "nodejs20.x",
-      "includeFiles": "api/index.js"
+      "memory": 1024,
+      "maxDuration": 30
     }
   },
   "rewrites": [
