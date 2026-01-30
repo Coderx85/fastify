@@ -1,5 +1,6 @@
 export const config = {
   PORT: process.env.PORT ? Number(process.env.PORT) : 3000,
+  DATABASE_URL: process.env.DATABASE_URL || "",
 
   // Polar.sh Configuration
   POLAR_ACCESS_TOKEN: process.env.POLAR_ACCESS_TOKEN || "",

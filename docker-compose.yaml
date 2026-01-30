@@ -1,0 +1,38 @@
+services:
+  fastify-db:
+    image: postgres:16.2
+    container_name: fastify-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fastify-dev-network
+
+  neon-proxy:
+    image: ghcr.io/timowilhelm/local-neon-http-proxy:main
+    environment:
+      - PG_CONNECTION_STRING=postgres://postgres:postgres@fastify-db:5432/postgres
+    ports:
+      - "4444:4444"
+    depends_on:
+      fastify-db:
+        condition: service_healthy
+    networks:
+      - fastify-dev-network
+
+volumes:
+  postgres-data:
+
+networks:
+  fastify-dev-network:
+    driver: bridge

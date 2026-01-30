@@ -5,14 +5,16 @@
     "dev": "dotenv -e .env.development.local -- tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
     "test": "dotenv -e .env.development.local -- vitest run",
+    "with-dev-env": "dotenv -e .env.development.local --",
     "test:watch": "dotenv -e .env.development.local -- vitest",
-    "test:polar": "dotenv -e .env.development.local -- vitest run src/routes/api/payment/polar"
+    "test:polar": "dotenv -e .env.development.local -- vitest run src/routes/api/payment/polar",
+    "db": "dotenv -e .env.development.local -- drizzle-kit"
   },
   "dependencies": {
-    "@electric-sql/pglite": "^0.3.15",
     "@fastify/autoload": "^6.3.1",
     "@fastify/cors": "^11.2.0",
     "@fastify/swagger": "^9.6.1",
+    "@neondatabase/serverless": "^1.0.2",
     "@polar-sh/fastify": "^0.5.3",
     "@polar-sh/sdk": "^0.42.5",
     "dotenv": "^17.2.3",
