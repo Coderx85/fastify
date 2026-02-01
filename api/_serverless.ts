@@ -15,6 +15,12 @@ import polarRoute from "@/routes/api/payment/polar/index";
 import productsRoute from "@/routes/api/products/index";
 import orderRoute from "@/routes/api/order/index";
 
+// Auth routes
+import loginRoute from "@/routes/api/auth/login/index";
+import registerRoute from "@/routes/api/auth/register/index";
+import forgotPasswordRoute from "@/routes/api/auth/forgot-password/index";
+import resetPasswordRoute from "@/routes/api/auth/reset-password/index";
+
 // Instantiate Fastify with serverless config
 const app = Fastify({
   logger: true,
@@ -37,6 +43,12 @@ app.register(paymentRoute, { prefix: "/api/payment" });
 app.register(polarRoute, { prefix: "/api/payment/polar" });
 app.register(productsRoute, { prefix: "/api/products" });
 app.register(orderRoute, { prefix: "/api/order" });
+
+// Auth routes
+app.register(loginRoute, { prefix: "/api/auth/login" });
+app.register(registerRoute, { prefix: "/api/auth/register" });
+app.register(forgotPasswordRoute, { prefix: "/api/auth/forgot-password" });
+app.register(resetPasswordRoute, { prefix: "/api/auth/reset-password" });
 
 export default async (req: IncomingMessage, res: ServerResponse) => {
   await app.ready();
