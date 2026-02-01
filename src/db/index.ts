@@ -1,6 +1,7 @@
-import fp from "fastify-plugin";
-import { PGlite } from "@electric-sql/pglite";
-import { drizzle, PgliteDatabase } from "drizzle-orm/pglite";
+import { neon } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-http";
 import * as schema from "./schema";
+import { config } from "@/lib/config";
 
-export const db = drizzle(new PGlite(), { schema });
+const sql = neon(config.DATABASE_URL);
+export const db = drizzle(sql, { schema });
