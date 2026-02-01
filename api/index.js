@@ -95236,6 +95236,9 @@ function drizzle(...params) {
 
 // src/db/index.ts
 init_config();
+if (!config2.DATABASE_URL) {
+  console.error("DATABASE_URL is not configured!");
+}
 var sql2 = cs(config2.DATABASE_URL);
 var db = drizzle(sql2, { schema: schema_exports });
 
