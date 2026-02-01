@@ -34534,6 +34534,7 @@ var init_config = __esm({
   "src/lib/config.ts"() {
     config2 = {
       PORT: process.env.PORT ? Number(process.env.PORT) : 3e3,
+      DATABASE_URL: process.env.DATABASE_URL || "",
       // Polar.sh Configuration
       POLAR_ACCESS_TOKEN: process.env.POLAR_ACCESS_TOKEN || "",
       POLAR_ORGANIZATION_ID: process.env.POLAR_ORGANIZATION_ID || "",
@@ -81470,7 +81471,7 @@ async function polarRoutes(fastify) {
   });
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/entity.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/entity.js
 var entityKind = /* @__PURE__ */ Symbol.for("drizzle:entityKind");
 function is(value, type) {
   if (!value || typeof value !== "object") {
@@ -81496,7 +81497,7 @@ function is(value, type) {
   return false;
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/column.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/column.js
 var Column = class {
   constructor(table, config3) {
     this.table = table;
@@ -81547,7 +81548,7 @@ var Column = class {
   }
 };
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/column-builder.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/column-builder.js
 var ColumnBuilder = class {
   static [entityKind] = "ColumnBuilder";
   config;
@@ -81650,10 +81651,10 @@ var ColumnBuilder = class {
   }
 };
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/table.utils.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/table.utils.js
 var TableName = /* @__PURE__ */ Symbol.for("drizzle:Name");
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/foreign-keys.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/foreign-keys.js
 var ForeignKeyBuilder = class {
   static [entityKind] = "PgForeignKeyBuilder";
   /** @internal */
@@ -81710,12 +81711,12 @@ var ForeignKey = class {
   }
 };
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/tracing-utils.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/tracing-utils.js
 function iife(fn, ...args) {
   return fn(...args);
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/unique-constraint.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/unique-constraint.js
 function uniqueKeyName(table, columns) {
   return `${table[TableName]}_${columns.join("_")}_unique`;
 }
@@ -81765,7 +81766,7 @@ var UniqueConstraint = class {
   }
 };
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/utils/array.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/utils/array.js
 function parsePgArrayValue(arrayString, startFrom, inQuotes) {
   for (let i = startFrom; i < arrayString.length; i++) {
     const char2 = arrayString[i];
@@ -81841,7 +81842,7 @@ function makePgArray(array3) {
   }).join(",")}}`;
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/columns/common.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/columns/common.js
 var PgColumnBuilder = class extends ColumnBuilder {
   foreignKeyConfigs = [];
   static [entityKind] = "PgColumnBuilder";
@@ -82025,7 +82026,7 @@ var PgArray = class _PgArray extends PgColumn {
   }
 };
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/columns/enum.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/columns/enum.js
 var PgEnumObjectColumnBuilder = class extends PgColumnBuilder {
   static [entityKind] = "PgEnumObjectColumnBuilder";
   constructor(name, enumInstance) {
@@ -82110,7 +82111,7 @@ function pgEnumObjectWithSchema(enumName, values, schema) {
   return enumInstance;
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/subquery.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/subquery.js
 var Subquery = class {
   static [entityKind] = "Subquery";
   constructor(sql2, fields, alias, isWith = false, usedTables = []) {
@@ -82131,10 +82132,10 @@ var WithSubquery = class extends Subquery {
   static [entityKind] = "WithSubquery";
 };
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/version.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/version.js
 var version2 = "0.45.1";
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/tracing.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/tracing.js
 var otel;
 var rawTracer;
 var tracer = {
@@ -82169,10 +82170,10 @@ var tracer = {
   }
 };
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/view-common.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/view-common.js
 var ViewBaseConfig = /* @__PURE__ */ Symbol.for("drizzle:ViewBaseConfig");
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/table.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/table.js
 var Schema = /* @__PURE__ */ Symbol.for("drizzle:Schema");
 var Columns = /* @__PURE__ */ Symbol.for("drizzle:Columns");
 var ExtraConfigColumns = /* @__PURE__ */ Symbol.for("drizzle:ExtraConfigColumns");
@@ -82231,7 +82232,7 @@ function isTable(table) {
   return typeof table === "object" && table !== null && IsDrizzleTable in table;
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/sql/sql.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/sql/sql.js
 var FakePrimitiveParam = class {
   static [entityKind] = "FakePrimitiveParam";
 };
@@ -82608,7 +82609,7 @@ Subquery.prototype.getSQL = function() {
   return new SQL([this]);
 };
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/utils.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/utils.js
 function getTableColumns(table) {
   return table[Table.Symbol.Columns];
 }
@@ -82623,7 +82624,7 @@ function getColumnNameAndConfig(a, b) {
 }
 var textDecoder = typeof TextDecoder === "undefined" ? null : new TextDecoder();
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/columns/int.common.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/columns/int.common.js
 var PgIntColumnBaseBuilder = class extends PgColumnBuilder {
   static [entityKind] = "PgIntColumnBaseBuilder";
   generatedAlwaysAsIdentity(sequence) {
@@ -82662,7 +82663,7 @@ var PgIntColumnBaseBuilder = class extends PgColumnBuilder {
   }
 };
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/columns/bigint.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/columns/bigint.js
 var PgBigInt53Builder = class extends PgIntColumnBaseBuilder {
   static [entityKind] = "PgBigInt53Builder";
   constructor(name) {
@@ -82716,7 +82717,7 @@ function bigint5(a, b) {
   return new PgBigInt64Builder(name);
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/columns/bigserial.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/columns/bigserial.js
 var PgBigSerial53Builder = class extends PgColumnBuilder {
   static [entityKind] = "PgBigSerial53Builder";
   constructor(name) {
@@ -82776,7 +82777,7 @@ function bigserial(a, b) {
   return new PgBigSerial64Builder(name);
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/columns/boolean.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/columns/boolean.js
 var PgBooleanBuilder = class extends PgColumnBuilder {
   static [entityKind] = "PgBooleanBuilder";
   constructor(name) {
@@ -82797,7 +82798,7 @@ function boolean6(name) {
   return new PgBooleanBuilder(name ?? "");
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/columns/char.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/columns/char.js
 var PgCharBuilder = class extends PgColumnBuilder {
   static [entityKind] = "PgCharBuilder";
   constructor(name, config3) {
@@ -82826,7 +82827,7 @@ function char(a, b = {}) {
   return new PgCharBuilder(name, config3);
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/columns/cidr.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/columns/cidr.js
 var PgCidrBuilder = class extends PgColumnBuilder {
   static [entityKind] = "PgCidrBuilder";
   constructor(name) {
@@ -82847,7 +82848,7 @@ function cidr(name) {
   return new PgCidrBuilder(name ?? "");
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/columns/custom.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/columns/custom.js
 var PgCustomColumnBuilder = class extends PgColumnBuilder {
   static [entityKind] = "PgCustomColumnBuilder";
   constructor(name, fieldConfig, customTypeParams) {
@@ -82891,7 +82892,7 @@ function customType(customTypeParams) {
   };
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/columns/date.common.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/columns/date.common.js
 var PgDateColumnBaseBuilder = class extends PgColumnBuilder {
   static [entityKind] = "PgDateColumnBaseBuilder";
   defaultNow() {
@@ -82899,7 +82900,7 @@ var PgDateColumnBaseBuilder = class extends PgColumnBuilder {
   }
 };
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/columns/date.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/columns/date.js
 var PgDateBuilder = class extends PgDateColumnBaseBuilder {
   static [entityKind] = "PgDateBuilder";
   constructor(name) {
@@ -82954,7 +82955,7 @@ function date8(a, b) {
   return new PgDateStringBuilder(name);
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/columns/double-precision.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/columns/double-precision.js
 var PgDoublePrecisionBuilder = class extends PgColumnBuilder {
   static [entityKind] = "PgDoublePrecisionBuilder";
   constructor(name) {
@@ -82984,7 +82985,7 @@ function doublePrecision(name) {
   return new PgDoublePrecisionBuilder(name ?? "");
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/columns/inet.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/columns/inet.js
 var PgInetBuilder = class extends PgColumnBuilder {
   static [entityKind] = "PgInetBuilder";
   constructor(name) {
@@ -83005,7 +83006,7 @@ function inet(name) {
   return new PgInetBuilder(name ?? "");
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/columns/integer.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/columns/integer.js
 var PgIntegerBuilder = class extends PgIntColumnBaseBuilder {
   static [entityKind] = "PgIntegerBuilder";
   constructor(name) {
@@ -83032,7 +83033,7 @@ function integer2(name) {
   return new PgIntegerBuilder(name ?? "");
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/columns/interval.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/columns/interval.js
 var PgIntervalBuilder = class extends PgColumnBuilder {
   static [entityKind] = "PgIntervalBuilder";
   constructor(name, intervalConfig) {
@@ -83059,7 +83060,7 @@ function interval(a, b = {}) {
   return new PgIntervalBuilder(name, config3);
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/columns/json.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/columns/json.js
 var PgJsonBuilder = class extends PgColumnBuilder {
   static [entityKind] = "PgJsonBuilder";
   constructor(name) {
@@ -83096,7 +83097,7 @@ function json3(name) {
   return new PgJsonBuilder(name ?? "");
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/columns/jsonb.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/columns/jsonb.js
 var PgJsonbBuilder = class extends PgColumnBuilder {
   static [entityKind] = "PgJsonbBuilder";
   constructor(name) {
@@ -83133,7 +83134,7 @@ function jsonb(name) {
   return new PgJsonbBuilder(name ?? "");
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/columns/line.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/columns/line.js
 var PgLineBuilder = class extends PgColumnBuilder {
   static [entityKind] = "PgLineBuilder";
   constructor(name) {
@@ -83194,7 +83195,7 @@ function line(a, b) {
   return new PgLineABCBuilder(name);
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/columns/macaddr.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/columns/macaddr.js
 var PgMacaddrBuilder = class extends PgColumnBuilder {
   static [entityKind] = "PgMacaddrBuilder";
   constructor(name) {
@@ -83215,7 +83216,7 @@ function macaddr(name) {
   return new PgMacaddrBuilder(name ?? "");
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/columns/macaddr8.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/columns/macaddr8.js
 var PgMacaddr8Builder = class extends PgColumnBuilder {
   static [entityKind] = "PgMacaddr8Builder";
   constructor(name) {
@@ -83236,7 +83237,7 @@ function macaddr8(name) {
   return new PgMacaddr8Builder(name ?? "");
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/columns/numeric.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/columns/numeric.js
 var PgNumericBuilder = class extends PgColumnBuilder {
   static [entityKind] = "PgNumericBuilder";
   constructor(name, precision, scale) {
@@ -83353,7 +83354,7 @@ function numeric(a, b) {
   return mode === "number" ? new PgNumericNumberBuilder(name, config3?.precision, config3?.scale) : mode === "bigint" ? new PgNumericBigIntBuilder(name, config3?.precision, config3?.scale) : new PgNumericBuilder(name, config3?.precision, config3?.scale);
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/columns/point.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/columns/point.js
 var PgPointTupleBuilder = class extends PgColumnBuilder {
   static [entityKind] = "PgPointTupleBuilder";
   constructor(name) {
@@ -83420,7 +83421,7 @@ function point(a, b) {
   return new PgPointObjectBuilder(name);
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/columns/postgis_extension/utils.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/columns/postgis_extension/utils.js
 function hexToBytes(hex3) {
   const bytes = [];
   for (let c = 0; c < hex3.length; c += 2) {
@@ -83459,7 +83460,7 @@ function parseEWKB(hex3) {
   throw new Error("Unsupported geometry type");
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/columns/postgis_extension/geometry.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/columns/postgis_extension/geometry.js
 var PgGeometryBuilder = class extends PgColumnBuilder {
   static [entityKind] = "PgGeometryBuilder";
   constructor(name) {
@@ -83519,7 +83520,7 @@ function geometry(a, b) {
   return new PgGeometryObjectBuilder(name);
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/columns/real.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/columns/real.js
 var PgRealBuilder = class extends PgColumnBuilder {
   static [entityKind] = "PgRealBuilder";
   constructor(name, length) {
@@ -83550,7 +83551,7 @@ function real(name) {
   return new PgRealBuilder(name ?? "");
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/columns/serial.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/columns/serial.js
 var PgSerialBuilder = class extends PgColumnBuilder {
   static [entityKind] = "PgSerialBuilder";
   constructor(name) {
@@ -83573,7 +83574,7 @@ function serial(name) {
   return new PgSerialBuilder(name ?? "");
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/columns/smallint.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/columns/smallint.js
 var PgSmallIntBuilder = class extends PgIntColumnBaseBuilder {
   static [entityKind] = "PgSmallIntBuilder";
   constructor(name) {
@@ -83600,7 +83601,7 @@ function smallint(name) {
   return new PgSmallIntBuilder(name ?? "");
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/columns/smallserial.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/columns/smallserial.js
 var PgSmallSerialBuilder = class extends PgColumnBuilder {
   static [entityKind] = "PgSmallSerialBuilder";
   constructor(name) {
@@ -83626,7 +83627,7 @@ function smallserial(name) {
   return new PgSmallSerialBuilder(name ?? "");
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/columns/text.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/columns/text.js
 var PgTextBuilder = class extends PgColumnBuilder {
   static [entityKind] = "PgTextBuilder";
   constructor(name, config3) {
@@ -83650,7 +83651,7 @@ function text(a, b = {}) {
   return new PgTextBuilder(name, config3);
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/columns/time.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/columns/time.js
 var PgTimeBuilder = class extends PgDateColumnBaseBuilder {
   constructor(name, withTimezone, precision) {
     super(name, "string", "PgTime");
@@ -83684,7 +83685,7 @@ function time4(a, b = {}) {
   return new PgTimeBuilder(name, config3.withTimezone ?? false, config3.precision);
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/columns/timestamp.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/columns/timestamp.js
 var PgTimestampBuilder = class extends PgDateColumnBaseBuilder {
   static [entityKind] = "PgTimestampBuilder";
   constructor(name, withTimezone, precision) {
@@ -83765,7 +83766,7 @@ function timestamp(a, b = {}) {
   return new PgTimestampBuilder(name, config3?.withTimezone ?? false, config3?.precision);
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/columns/uuid.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/columns/uuid.js
 var PgUUIDBuilder = class extends PgColumnBuilder {
   static [entityKind] = "PgUUIDBuilder";
   constructor(name) {
@@ -83792,7 +83793,7 @@ function uuid3(name) {
   return new PgUUIDBuilder(name ?? "");
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/columns/varchar.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/columns/varchar.js
 var PgVarcharBuilder = class extends PgColumnBuilder {
   static [entityKind] = "PgVarcharBuilder";
   constructor(name, config3) {
@@ -83821,7 +83822,7 @@ function varchar(a, b = {}) {
   return new PgVarcharBuilder(name, config3);
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/columns/vector_extension/bit.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/columns/vector_extension/bit.js
 var PgBinaryVectorBuilder = class extends PgColumnBuilder {
   static [entityKind] = "PgBinaryVectorBuilder";
   constructor(name, config3) {
@@ -83848,7 +83849,7 @@ function bit(a, b) {
   return new PgBinaryVectorBuilder(name, config3);
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/columns/vector_extension/halfvec.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/columns/vector_extension/halfvec.js
 var PgHalfVectorBuilder = class extends PgColumnBuilder {
   static [entityKind] = "PgHalfVectorBuilder";
   constructor(name, config3) {
@@ -83881,7 +83882,7 @@ function halfvec(a, b) {
   return new PgHalfVectorBuilder(name, config3);
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/columns/vector_extension/sparsevec.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/columns/vector_extension/sparsevec.js
 var PgSparseVectorBuilder = class extends PgColumnBuilder {
   static [entityKind] = "PgSparseVectorBuilder";
   constructor(name, config3) {
@@ -83908,7 +83909,7 @@ function sparsevec(a, b) {
   return new PgSparseVectorBuilder(name, config3);
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/columns/vector_extension/vector.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/columns/vector_extension/vector.js
 var PgVectorBuilder = class extends PgColumnBuilder {
   static [entityKind] = "PgVectorBuilder";
   constructor(name, config3) {
@@ -83941,7 +83942,7 @@ function vector(a, b) {
   return new PgVectorBuilder(name, config3);
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/columns/all.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/columns/all.js
 function getPgColumnBuilders() {
   return {
     bigint: bigint5,
@@ -83979,7 +83980,7 @@ function getPgColumnBuilders() {
   };
 }
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/table.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/table.js
 var InlineForeignKeys = /* @__PURE__ */ Symbol.for("drizzle:PgInlineForeignKeys");
 var EnableRLS = /* @__PURE__ */ Symbol.for("drizzle:EnableRLS");
 var PgTable = class extends Table {
@@ -84035,7 +84036,7 @@ var pgTable = (name, columns, extraConfig) => {
   return pgTableWithSchema(name, columns, extraConfig, void 0);
 };
 
-// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15/node_modules/drizzle-orm/pg-core/indexes.js
+// node_modules/.pnpm/drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverless@1.0.2_@types+pg@8.16.0/node_modules/drizzle-orm/pg-core/indexes.js
 var IndexBuilderOn = class {
   constructor(unique, name) {
     this.unique = unique;
@@ -84144,7 +84145,7 @@ function index(name) {
   return new IndexBuilderOn(false, name);
 }
 
-// node_modules/.pnpm/drizzle-zod@0.8.3_drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15__zod@4.3.6/node_modules/drizzle-zod/index.mjs
+// node_modules/.pnpm/drizzle-zod@0.8.3_drizzle-orm@0.45.1_@electric-sql+pglite@0.3.15_@neondatabase+serverle_2031f85ad7b2b0871eb3f58264a7695f/node_modules/drizzle-zod/index.mjs
 var CONSTANTS = {
   INT8_MIN: -128,
   INT8_MAX: 127,
@@ -84700,32 +84701,51 @@ var polar2 = new Polar({
 });
 var ProductService = class {
   /**
+   * Check if Polar API is configured
+   */
+  isPolarConfigured() {
+    return !!(config2.POLAR_ACCESS_TOKEN && config2.POLAR_ORGANIZATION_ID);
+  }
+  /**
    * Get all products
+   * Falls back to sample data if Polar API is not configured or fails
    * @returns Array of products
    */
   async getAllProducts() {
-    const products = await polar2.products.list({
-      organizationId: config2.POLAR_ORGANIZATION_ID
-    });
-    console.log(products);
-    const result = products.result.items;
-    const productsData = result.map((item) => {
-      const firstPrice = item.prices && item.prices.length > 0 ? item.prices[0] : null;
-      let priceAmount = 0;
-      if (firstPrice && "priceAmount" in firstPrice) {
-        priceAmount = firstPrice.priceAmount;
+    if (!this.isPolarConfigured()) {
+      console.log("Polar API not configured, returning sample products");
+      return productsSample;
+    }
+    try {
+      const products = await polar2.products.list({
+        organizationId: config2.POLAR_ORGANIZATION_ID
+      });
+      const result = products.result.items;
+      if (!result || result.length === 0) {
+        console.log("No products from Polar API, returning sample products");
+        return productsSample;
       }
-      return {
-        // Polar IDs are strings, so we provide default numeric IDs for the local schema
-        id: 0,
-        productId: 0,
-        name: item.name || "",
-        description: item.description || "",
-        price: priceAmount,
-        category: "Books"
-      };
-    });
-    return productsData;
+      const productsData = result.map((item) => {
+        const firstPrice = item.prices && item.prices.length > 0 ? item.prices[0] : null;
+        let priceAmount = 0;
+        if (firstPrice && "priceAmount" in firstPrice) {
+          priceAmount = firstPrice.priceAmount;
+        }
+        return {
+          // Polar IDs are strings, so we provide default numeric IDs for the local schema
+          id: 0,
+          productId: 0,
+          name: item.name || "",
+          description: item.description || "",
+          price: priceAmount,
+          category: "Books"
+        };
+      });
+      return productsData;
+    } catch (error48) {
+      console.error("Polar API error, falling back to sample products:", error48);
+      return productsSample;
+    }
   }
   /**
    * Get products by category

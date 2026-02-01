@@ -18,41 +18,63 @@ const polar = new Polar({
 
 export class ProductService {
   /**
+   * Check if Polar API is configured
+   */
+  private isPolarConfigured(): boolean {
+    return !!(config.POLAR_ACCESS_TOKEN && config.POLAR_ORGANIZATION_ID);
+  }
+
+  /**
    * Get all products
+   * Falls back to sample data if Polar API is not configured or fails
    * @returns Array of products
    */
   async getAllProducts() {
-    // const products = await db.select().from(product);
-    // return products;
+    // If Polar is not configured, return sample data
+    if (!this.isPolarConfigured()) {
+      console.log("Polar API not configured, returning sample products");
+      return productsSample;
+    }
 
-    const products = await polar.products.list({
-      organizationId: config.POLAR_ORGANIZATION_ID,
-    });
+    try {
+      const products = await polar.products.list({
+        organizationId: config.POLAR_ORGANIZATION_ID,
+      });
 
-    console.log(products);
-
-    const result = products.result.items;
-    const productsData: TProduct[] = result.map((item) => {
-      // Safely get the first price and its amount
-      const firstPrice =
-        item.prices && item.prices.length > 0 ? item.prices[0] : null;
-      let priceAmount = 0;
-
-      if (firstPrice && "priceAmount" in firstPrice) {
-        priceAmount = firstPrice.priceAmount;
+      const result = products.result.items;
+      
+      // If no products from Polar, return sample data
+      if (!result || result.length === 0) {
+        console.log("No products from Polar API, returning sample products");
+        return productsSample;
       }
 
-      return {
-        // Polar IDs are strings, so we provide default numeric IDs for the local schema
-        id: 0,
-        productId: 0,
-        name: item.name || "",
-        description: item.description || "",
-        price: priceAmount,
-        category: "Books",
-      };
-    });
-    return productsData;
+      const productsData: TProduct[] = result.map((item) => {
+        // Safely get the first price and its amount
+        const firstPrice =
+          item.prices && item.prices.length > 0 ? item.prices[0] : null;
+        let priceAmount = 0;
+
+        if (firstPrice && "priceAmount" in firstPrice) {
+          priceAmount = firstPrice.priceAmount;
+        }
+
+        return {
+          // Polar IDs are strings, so we provide default numeric IDs for the local schema
+          id: 0,
+          productId: 0,
+          name: item.name || "",
+          description: item.description || "",
+          price: priceAmount,
+          category: "Books",
+        };
+      });
+      return productsData;
+    } catch (error) {
+      // If Polar API fails, fallback to sample data
+      console.error("Polar API error, falling back to sample products:", error);
+      return productsSample;
+    }
   }
 
   /**
