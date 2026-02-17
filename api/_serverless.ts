@@ -9,7 +9,7 @@ import type { IncomingMessage, ServerResponse } from "http";
 
 // Import routes manually (esbuild resolves @/* aliases during bundling)
 import rootRoute from "@/routes/index";
-import healthRoute from "@/routes/api/health/index";
+import healthRoute from "@/routes/health/index";
 import paymentRoute from "@/routes/api/payment/index";
 import polarRoute from "@/routes/api/payment/polar/index";
 import productsRoute from "@/routes/api/products/index";

@@ -1,4 +1,4 @@
-import { FastifyInstance } from "fastify";
+import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { ZodTypeProvider } from "fastify-type-provider-zod";
 import { eq } from "drizzle-orm";
 
@@ -10,17 +10,38 @@ import { db } from "@/db";
 
 export default async function usersRoute(fastify: FastifyInstance) {
   // GET /api/users
-  fastify.get("/", async (request, reply) => {
-    const allUsers = await db
-      .select({
-        id: users.id,
-        name: users.name,
-        email: users.email,
-      })
-      .from(users);
+  fastify.get(
+    "/",
+    async (
+      request: FastifyRequest<{
+        Querystring: {
+          email?: string;
+        };
+      }>,
+      reply: FastifyReply,
+    ) => {
+      if (request.query.email) {
+        const user = await db
+          .select({
+            id: users.id,
+            name: users.name,
+            email: users.email,
+          })
+          .from(users)
+          .where(eq(users.email, request.query.email));
+        return sendSuccess(user, "User retrieved successfully", reply, 200);
+      }
+      const allUsers = await db
+        .select({
+          id: users.id,
+          name: users.name,
+          email: users.email,
+        })
+        .from(users);
 
-    sendSuccess(allUsers, "Users retrieved successfully", reply, 200);
-  });
+      sendSuccess(allUsers, "Users retrieved successfully", reply, 200);
+    },
+  );
 
   // GET /api/users/:id
   fastify.withTypeProvider<ZodTypeProvider>().get(
