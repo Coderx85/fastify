@@ -1,0 +1,20 @@
+meta {
+  name: User By Email
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/api/users?email=abpriyanshu007@gmail.com
+  body: none
+  auth: inherit
+}
+
+params:query {
+  email: abpriyanshu007@gmail.com
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,11 +1,10 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 
-import { hashPassword, verifyPassword } from "@/lib/hash";
-import { AuthBody, LoginBody } from "@/schema/auth.schema";
-// import { AuthContext } from "@/types/api";
+import { verifyPassword } from "@/lib/hash";
+import { LoginBody } from "@/schema/auth.schema";
 import { users } from "@/db/schema";
 import { sendError, sendSuccess } from "@/lib/response";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "@/db";
 
 export const loginRouteHandler = {
