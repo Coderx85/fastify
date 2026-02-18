@@ -1,15 +1,10 @@
-// import { db } from "@/db";
-// import { product, TCategoryEnumValues } from "@/db/schema";
-import { TCategoryEnumValues, TProduct } from "@/db/schema";
+import { db } from "@/db";
+import { product, TCategoryEnumValues, TProduct } from "@/db/schema";
 import { config } from "@/lib/config";
-import {
-  productsSample,
-  getNextId,
-  getNextProductId,
-} from "@/sample/products.sample";
+import { productsSample } from "@/sample/products.sample";
 import { CreateProductBody, UpdateProductBody } from "@/schema/product.schema";
 import { Polar } from "@polar-sh/sdk";
-// import { eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 const polar = new Polar({
   accessToken: config.POLAR_ACCESS_TOKEN,
@@ -42,7 +37,7 @@ export class ProductService {
       });
 
       const result = products.result.items;
-      
+
       // If no products from Polar, return sample data
       if (!result || result.length === 0) {
         console.log("No products from Polar API, returning sample products");
@@ -100,13 +95,13 @@ export class ProductService {
    * @returns Product object
    */
   async getProductById(id: number) {
-    // const products = await db
-    //   .select()
-    //   .from(product)
-    //   .where(eq(product.productId, id));
+    const [products] = await db
+      .select()
+      .from(product)
+      .where(eq(product.productId, id));
 
-    const foundProduct = productsSample.find((p) => p.productId === id);
-    return foundProduct || null;
+    // const foundProduct = productsSample.find((p) => p.productId === id);
+    return products;
   }
 
   /**
@@ -115,15 +110,33 @@ export class ProductService {
    * @returns Created product
    */
   async createProduct(data: CreateProductBody) {
-    const newProduct: TProduct = {
-      id: getNextId(),
-      productId: getNextProductId(),
-      ...data,
-    };
+    // Let the database assign serial `id` / `product_id` values — do not pass them manually.
+    try {
+      const [created] = await db
+        .insert(product)
+        .values({
+          name: data.name,
+          description: data.description,
+          price: data.price,
+          category: data.category,
+        })
+        .returning({
+          id: product.id,
+          productId: product.productId,
+          name: product.name,
+          description: product.description,
+          price: product.price,
+          category: product.category,
+        });
 
-    // await db.insert(product).values(newProduct);
-    productsSample.push(newProduct);
-    return newProduct;
+      if (!created) {
+        throw new Error("Failed to create product");
+      }
+
+      return created;
+    } catch (error) {
+      throw error;
+    }
   }
 
   /**
