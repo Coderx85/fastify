@@ -2,14 +2,15 @@
   "name": "fastify",
   "type": "module",
   "scripts": {
-    "dev": "dotenv -e .env.development.local -- tsx watch src/index.ts",
+    "dev": "dotenv -e .env.development -- tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
+    "start": "node dist/index.js",
     "build:vercel": "node scripts/build-serverless.mjs",
-    "test": "dotenv -e .env.development.local -- vitest run",
-    "with-dev-env": "dotenv -e .env.development.local --",
-    "test:watch": "dotenv -e .env.development.local -- vitest",
-    "test:polar": "dotenv -e .env.development.local -- vitest run src/routes/api/payment/polar",
-    "db": "dotenv -e .env.development.local -- drizzle-kit"
+    "test": "dotenv -e .env.development -- vitest run",
+    "with-dev-env": "dotenv -e .env.development --",
+    "test:watch": "dotenv -e .env.development -- vitest",
+    "test:polar": "dotenv -e .env.development -- vitest run src/routes/api/payment/polar",
+    "db": "dotenv -e .env.development -- drizzle-kit"
   },
   "dependencies": {
     "@fastify/autoload": "^6.3.1",
