@@ -28,7 +28,8 @@
     "fastify-type-provider-zod": "^6.1.0",
     "fastify-zod": "^1.4.0",
     "tsconfig-paths": "^4.2.0",
-    "zod": "^4.3.6"
+    "zod": "^4.3.6",
+    "razorpay": "^2.7.0"
   },
   "devDependencies": {
     "@types/node": "20.11.17",

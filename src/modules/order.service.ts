@@ -1,6 +1,6 @@
-// import { db } from "@/db";
-// import { orders, orderProduct } from "@/db/schema";
-// import { eq } from "drizzle-orm";
+import { db } from "@/db";
+import { orders, orderProduct, product } from "@/db/schema";
+import { and, eq } from "drizzle-orm";
 import { TOrder, TOrderProduct } from "@/db/schema";
 import {
   ordersSample,
@@ -14,6 +14,9 @@ import {
   OrderWithProducts,
   UpdateOrderBody,
 } from "@/schema/order.schema";
+import { productService } from "./product.service";
+import { IProducts } from "@/types/payment";
+import { STATUS_CODES } from "http";
 
 export class OrderService {
   /**
@@ -22,85 +25,47 @@ export class OrderService {
    * @returns Created order with associated products
    */
   async createOrder(data: CreateOrderBody): Promise<OrderWithProducts> {
-    // Validate that all products exist and calculate total
+    // Get product prices to calculate total amount
+
+    // const productIds = data.products.map((p) => p.productId)
+
     let totalAmount = 0;
-    const productPrices: Map<number, number> = new Map();
+    let productDetails: IProducts[] = [];
 
+    // Find the product to get its price
     for (const item of data.products) {
-      // Find product in sample data (or DB)
-      // const dbProduct = await db
-      //   .select()
-      //   .from(product)
-      //   .where(eq(product.productId, item.productId))
-      //   .limit(1);
+      const foundProduct = await productService.getProductById(item.productId);
 
-      const foundProduct = productsSample.find(
-        (p) => p.productId === item.productId,
-      );
-
-      if (!foundProduct) {
-        throw new Error(`Product with ID ${item.productId} not found`);
-      }
-
-      productPrices.set(item.productId, foundProduct.price);
       totalAmount += foundProduct.price * item.quantity;
+      productDetails.push(foundProduct);
     }
 
-    // Create the order
-    const now = new Date();
-    const newOrder: TOrder = {
-      id: getNextOrderId(),
-      userId: data.userId,
-      totalAmount,
-      status: "processing",
-      shippingAddress: data.shippingAddress ?? null,
-      paymentMethod: data.paymentMethod ?? null,
-      notes: data.notes ?? null,
-      createdAt: now,
-      updatedAt: now,
-    };
+    const [createdOrder] = await db
+      .insert(orders)
+      .values({
+        userId: data.userId,
+        totalAmount, // store total amount in Paises
+        status: "processing",
+        shippingAddress: data.shippingAddress,
+        paymentMethod: data.paymentMethod,
+        notes: data.notes,
+      })
+      .returning();
 
-    // const [createdOrder] = await db.insert(orders).values({
-    //   userId: data.userId,
-    //   totalAmount,
-    //   status: "processing",
-    //   shippingAddress: data.shippingAddress,
-    //   paymentMethod: data.paymentMethod,
-    //   notes: data.notes,
-    // }).returning();
-
-    // Add to sample data
-    ordersSample.push(newOrder);
-
-    // Create order products
-    const createdOrderProducts: TOrderProduct[] = [];
-
+    // Insert order products
     for (const item of data.products) {
-      const priceAtOrder = productPrices.get(item.productId)!;
-
-      const newOrderProduct: TOrderProduct = {
-        id: getNextOrderProductId(),
-        orderId: newOrder.id,
+      await db.insert(orderProduct).values({
+        orderId: createdOrder.id,
         productId: item.productId,
         quantity: item.quantity,
-        priceAtOrder,
-        createdAt: now,
-      };
-
-      // const [createdOrderProduct] = await db.insert(orderProduct).values({
-      //   orderId: createdOrder.id,
-      //   productId: item.productId,
-      //   quantity: item.quantity,
-      //   priceAtOrder,
-      // }).returning();
-
-      orderProductsSample.push(newOrderProduct);
-      createdOrderProducts.push(newOrderProduct);
+        priceAtOrder: productDetails.find((p) => p.productId === item.productId)
+          ?.price as number, // store price at order time in Paises
+      });
     }
 
     return {
-      order: newOrder,
-      products: createdOrderProducts,
+      order: createdOrder,
+      products: [],
     };
   }
 
@@ -110,27 +75,17 @@ export class OrderService {
    * @returns Order with products or null if not found
    */
   async getOrderById(orderId: number): Promise<OrderWithProducts | null> {
-    // const [foundOrder] = await db
-    //   .select()
-    //   .from(orders)
-    //   .where(eq(orders.id, orderId))
-    //   .limit(1);
-
-    const foundOrder = ordersSample.find((o) => o.id === orderId);
-
-    if (!foundOrder) {
-      return null;
-    }
+    const [foundOrder] = await db
+      .select()
+      .from(orders)
+      .where(eq(orders.id, orderId))
+      .limit(1);
 
     // Get associated products
-    // const orderProducts = await db
-    //   .select()
-    //   .from(orderProduct)
-    //   .where(eq(orderProduct.orderId, orderId));
-
-    const orderProducts = orderProductsSample.filter(
-      (op) => op.orderId === orderId,
-    );
+    const orderProducts = await db
+      .select()
+      .from(orderProduct)
+      .where(eq(orderProduct.orderId, orderId));
 
     return {
       order: foundOrder,
@@ -144,19 +99,19 @@ export class OrderService {
    * @returns Array of orders with products
    */
   async getOrdersByUserId(userId: number): Promise<OrderWithProducts[]> {
-    // const userOrders = await db
-    //   .select()
-    //   .from(orders)
-    //   .where(eq(orders.userId, userId));
+    const userOrders = await db
+      .select()
+      .from(orders)
+      .where(eq(orders.userId, userId));
 
-    const userOrders = ordersSample.filter((o) => o.userId === userId);
-
-    const result: OrderWithProducts[] = [];
+    let result: OrderWithProducts[] = [];
 
     for (const order of userOrders) {
-      const orderProducts = orderProductsSample.filter(
-        (op) => op.orderId === order.id,
-      );
+      const orderProducts = await db
+        .select()
+        .from(orderProduct)
+        .where(eq(orderProduct.orderId, order.id));
+
       result.push({
         order,
         products: orderProducts,
@@ -176,55 +131,69 @@ export class OrderService {
     orderId: number,
     data: UpdateOrderBody,
   ): Promise<OrderWithProducts> {
-    // Find the order
-    const orderIndex = ordersSample.findIndex((o) => o.id === orderId);
+    try {
+      // Find the order
+      const [foundOrder] = await db
+        .select()
+        .from(orders)
+        .where(eq(orders.id, orderId))
+        .limit(1);
 
-    if (orderIndex === -1) {
-      throw new Error(`Order with ID ${orderId} not found`);
+      if (!foundOrder) {
+        throw new Error(`Order with ID ${orderId} not found`, {
+          cause: {
+            STATUS_CODES: 404,
+          },
+        });
+      }
+
+      // Status Guard: Cannot update cancelled orders
+      if (foundOrder.status === "cancelled") {
+        throw new Error(`Cannot update an order with status 'cancelled'`);
+      }
+
+      const now = new Date();
+
+      // Update order fields
+      const updatedOrder: TOrder = {
+        ...foundOrder,
+        status: data.status ?? foundOrder.status,
+        shippingAddress: data.shippingAddress ?? foundOrder.shippingAddress,
+        paymentMethod: data.paymentMethod ?? foundOrder.paymentMethod,
+        notes: data.notes ?? foundOrder.notes,
+        updatedAt: now,
+      };
+
+      const orderProducts = await db
+        .select()
+        .from(orderProduct)
+        .where(eq(orderProduct.orderId, orderId));
+
+      await db
+        .update(orders)
+        .set({
+          status: data.status,
+          shippingAddress: data.shippingAddress,
+          paymentMethod: data.paymentMethod,
+          notes: data.notes,
+          updatedAt: now,
+        })
+        .where(eq(orders.id, orderId));
+
+      return {
+        order: updatedOrder,
+        products: orderProducts,
+      };
+    } catch (error: unknown) {
+      throw new Error(
+        error instanceof Error ? error.message : "An unknown error occurred",
+        {
+          cause: {
+            STATUS_CODES: (error instanceof Error && error.cause) || 500,
+          },
+        },
+      );
     }
-
-    const existingOrder = ordersSample[orderIndex];
-
-    // Status Guard: Cannot update cancelled orders
-    if (existingOrder.status === "cancelled") {
-      throw new Error(`Cannot update an order with status 'cancelled'`);
-    }
-
-    const now = new Date();
-
-    // Update order fields
-    const updatedOrder: TOrder = {
-      ...existingOrder,
-      status: data.status ?? existingOrder.status,
-      shippingAddress: data.shippingAddress ?? existingOrder.shippingAddress,
-      paymentMethod: data.paymentMethod ?? existingOrder.paymentMethod,
-      notes: data.notes ?? existingOrder.notes,
-      updatedAt: now,
-    };
-
-    // await db
-    //   .update(orders)
-    //   .set({
-    //     status: data.status,
-    //     shippingAddress: data.shippingAddress,
-    //     paymentMethod: data.paymentMethod,
-    //     notes: data.notes,
-    //     updatedAt: now,
-    //   })
-    //   .where(eq(orders.id, orderId));
-
-    // Update in sample data
-    ordersSample[orderIndex] = updatedOrder;
-
-    // Get associated products
-    const orderProducts = orderProductsSample.filter(
-      (op) => op.orderId === orderId,
-    );
-
-    return {
-      order: updatedOrder,
-      products: orderProducts,
-    };
   }
 
   /**
@@ -239,105 +208,98 @@ export class OrderService {
     productId: number,
     quantity: number = 1,
   ): Promise<OrderWithProducts> {
-    // Find the order
-    const orderIndex = ordersSample.findIndex((o) => o.id === orderId);
+    // Find order in DB
+    const [foundOrder] = await db
+      .select()
+      .from(orders)
+      .where(eq(orders.id, orderId))
+      .limit(1);
 
-    if (orderIndex === -1) {
+    if (!foundOrder) {
       throw new Error(`Order with ID ${orderId} not found`);
     }
 
-    const existingOrder = ordersSample[orderIndex];
-
-    // Status Guard: Cannot add products to delivered or cancelled orders
+    // Status Guard
     if (
-      existingOrder.status === "delivered" ||
-      existingOrder.status === "cancelled"
+      foundOrder.status === "delivered" ||
+      foundOrder.status === "cancelled"
     ) {
       throw new Error(
-        `Cannot add products to an order that is '${existingOrder.status}'`,
+        `Cannot add products to an order that is '${foundOrder.status}'`,
       );
     }
 
-    // Find the product to get its price
-    const foundProduct = productsSample.find((p) => p.productId === productId);
+    // Find product by external productId (matches order_product.productId FK)
+    const [foundProduct] = await db
+      .select()
+      .from(product)
+      .where(eq(product.productId, productId))
+      .limit(1);
 
     if (!foundProduct) {
       throw new Error(`Product with ID ${productId} not found`);
     }
 
     const now = new Date();
-    const priceAtOrder = foundProduct.price;
 
-    // Check if product already exists in order
-    const existingOrderProductIndex = orderProductsSample.findIndex(
-      (op) => op.orderId === orderId && op.productId === productId,
-    );
+    // Use a transaction to keep order and order_product consistent
+    await db.transaction(async (tx) => {
+      const [existingOrderProduct] = await tx
+        .select()
+        .from(orderProduct)
+        .where(
+          and(
+            eq(orderProduct.orderId, orderId),
+            eq(orderProduct.productId, productId),
+          ),
+        )
+        .limit(1);
 
-    if (existingOrderProductIndex !== -1) {
-      // Update quantity of existing product
-      const existingOrderProduct =
-        orderProductsSample[existingOrderProductIndex];
-      orderProductsSample[existingOrderProductIndex] = {
-        ...existingOrderProduct,
-        quantity: existingOrderProduct.quantity + quantity,
-      };
+      if (existingOrderProduct) {
+        await tx
+          .update(orderProduct)
+          .set({ quantity: existingOrderProduct.quantity + quantity })
+          .where(eq(orderProduct.id, existingOrderProduct.id));
+      } else {
+        await tx.insert(orderProduct).values({
+          orderId,
+          productId,
+          quantity,
+          priceAtOrder: foundProduct.price,
+        });
+      }
 
-      // await db
-      //   .update(orderProduct)
-      //   .set({ quantity: existingOrderProduct.quantity + quantity })
-      //   .where(
-      //     and(
-      //       eq(orderProduct.orderId, orderId),
-      //       eq(orderProduct.productId, productId),
-      //     ),
-      //   );
-    } else {
-      // Create new order product
-      const newOrderProduct: TOrderProduct = {
-        id: getNextOrderProductId(),
-        orderId,
-        productId,
-        quantity,
-        priceAtOrder,
-        createdAt: now,
-      };
+      const orderProducts = await tx
+        .select()
+        .from(orderProduct)
+        .where(eq(orderProduct.orderId, orderId));
 
-      // await db.insert(orderProduct).values({
-      //   orderId,
-      //   productId,
-      //   quantity,
-      //   priceAtOrder,
-      // });
+      const newTotalAmount = orderProducts.reduce(
+        (sum, op) => sum + op.priceAtOrder * op.quantity,
+        0,
+      );
 
-      orderProductsSample.push(newOrderProduct);
-    }
+      await tx
+        .update(orders)
+        .set({ totalAmount: newTotalAmount, updatedAt: now })
+        .where(eq(orders.id, orderId));
+    });
 
-    // Recalculate total amount
-    const orderProducts = orderProductsSample.filter(
-      (op) => op.orderId === orderId,
-    );
-    const newTotalAmount = orderProducts.reduce(
-      (sum, op) => sum + op.priceAtOrder * op.quantity,
-      0,
-    );
+    // Return updated order + products
+    const [updatedOrder] = await db
+      .select()
+      .from(orders)
+      .where(eq(orders.id, orderId))
+      .limit(1);
 
-    // Update order
-    const updatedOrder: TOrder = {
-      ...existingOrder,
-      totalAmount: newTotalAmount,
-      updatedAt: now,
-    };
-
-    // await db
-    //   .update(orders)
-    //   .set({ totalAmount: newTotalAmount, updatedAt: now })
-    //   .where(eq(orders.id, orderId));
-
-    ordersSample[orderIndex] = updatedOrder;
+    const orderProducts = await db
+      .select()
+      .from(orderProduct)
+      .where(eq(orderProduct.orderId, orderId));
 
     return {
-      order: updatedOrder,
-      products: orderProducts,
+      order: updatedOrder as TOrder,
+      products: orderProducts as TOrderProduct[],
     };
   }
 
