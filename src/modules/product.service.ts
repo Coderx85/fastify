@@ -6,7 +6,6 @@ import {
   TProduct,
 } from "@/db/schema";
 import { config } from "@/lib/config";
-import { productsSample } from "@/sample/products.sample";
 import { CreateProductBody, UpdateProductBody } from "@/schema/product.schema";
 import { IProducts } from "@/types/payment";
 import { Polar } from "@polar-sh/sdk";
@@ -24,6 +23,10 @@ class ProductService {
    */
   private isPolarConfigured(): boolean {
     return !!(config.POLAR_ACCESS_TOKEN && config.POLAR_ORGANIZATION_ID);
+  }
+
+  private convertToPaises(priceInRupees: number): number {
+    return Math.round(priceInRupees * 100); // Convert rupees to paises
   }
 
   private formatProduct(product: TProduct): IProducts {
@@ -48,7 +51,6 @@ class ProductService {
       const products = await db.select().from(product);
 
       // Be default currency is in paises, convert to rupees and dollars in the application layer
-
       const formattedProducts: IProducts[] = this.formatProducts(products);
 
       return formattedProducts;
@@ -65,12 +67,13 @@ class ProductService {
    * @param query Category enum value
    * @returns Array of products
    */
-  async getProductByQuery(query: TCategoryEnumValues) {
+  async getProductByQuery(query: TCategoryEnumValues): Promise<IProducts[]> {
     try {
       const products = await db
         .select()
         .from(product)
-        .where(eq(product.category, query));
+        .where(eq(product.category, query))
+        .execute();
 
       const formattedProducts = this.formatProducts(products);
       return formattedProducts;
@@ -93,9 +96,18 @@ class ProductService {
       const [products] = await db
         .select()
         .from(product)
-        .where(eq(product.productId, id));
+        .where(eq(product.id, id));
 
-      return products;
+      if (!products) {
+        throw new Error(`Product with ID ${id} not found`, {
+          cause: {
+            STATUS_CODES: STATUS_CODES["404"],
+          },
+        });
+      }
+
+      const formattedProduct = this.formatProduct(products);
+      return formattedProduct;
     } catch (error: unknown) {
       throw new Error(
         error instanceof Error
@@ -123,7 +135,7 @@ class ProductService {
         .values({
           name: data.name,
           description: data.description,
-          price: data.price,
+          price: this.convertToPaises(data.price),
           category: data.category,
         })
         .returning();
@@ -155,7 +167,7 @@ class ProductService {
       const updatedProduct = db
         .update(product)
         .set(data)
-        .where(eq(product.productId, id))
+        .where(eq(product.id, id))
         .returning();
 
       return updatedProduct;
@@ -173,7 +185,7 @@ class ProductService {
    */
   async deleteProduct(id: number) {
     try {
-      await db.delete(product).where(eq(product.productId, id));
+      await db.delete(product).where(eq(product.id, id));
       return { deleted: true, productId: id };
     } catch (error: unknown) {
       throw new Error(

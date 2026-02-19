@@ -27,40 +27,35 @@ vc deploy
 
 ## Payment Module
 
-This project includes a payment module that integrates with Stripe.
+This project supports two payment providers: **Polar** (sandbox) and **Razorpay**.
 
-### Environment Variables
+### Environment variables
 
-You need to create a `.env` file in the root of the project with the following environment variables:
+Add the following to `.env.development` (examples are already in the repo):
 
-```
-STRIPE_API_KEY=your_stripe_api_key
-STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
-DATABASE_URL=file:./data/pglite.db
-```
+- RAZORPAY_KEY_ID — public key used by client Checkout
+- RAZORPAY_KEY_SECRET — server-side secret used to sign/verify
+- RAZORPAY_WEBHOOK_SECRET — webhook verification secret
+- RAZORPAY_CURRENCY — currency (optional)
 
-### API Endpoints
+### Endpoints (Razorpay)
 
--   `POST /api/payment/intent`
+- POST `/api/payment/intent` — provider-agnostic. Pass { orderId, provider: "razorpay" } to create a Razorpay Order.
+- POST `/api/payment/razorpay/verify` — verify Checkout signature from the client and mark payment succeeded.
+- POST `/api/payment/razorpay/webhook` — webhook endpoint (verifies `x-razorpay-signature`).
 
-    Creates a Stripe Payment Intent for a given order.
+### Client example
 
-    **Request Body:**
+Open `sample/razorpay-checkout.html` and click **Pay with Razorpay** (you must run the API server at `http://localhost:4000`). The page demonstrates:
 
-    ```json
-    {
-      "orderId": 123
-    }
-    ```
+1. Requesting a Razorpay Order from `POST /api/payment/intent` (provider: "razorpay").
+2. Opening the Razorpay Checkout using `keyId` + `order.id`.
+3. Sending the Checkout response to `POST /api/payment/razorpay/verify` for server verification.
 
-    **Response:**
+### Webhooks
 
-    ```json
-    {
-      "clientSecret": "pi_..."
-    }
-    ```
+Configure a webhook in your Razorpay dashboard to post payment events to `/api/payment/razorpay/webhook` and set `RAZORPAY_WEBHOOK_SECRET` accordingly. The server verifies the webhook HMAC and updates the payment row.
 
--   `POST /api/payment/webhook`
+---
 
-    Handles Stripe webhook events to update the payment status of an order. This endpoint should be configured in your Stripe dashboard.
+See `sample/razorpay-checkout.html` for a copy-paste demo.

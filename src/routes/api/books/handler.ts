@@ -6,21 +6,17 @@ import {
   UpdateBookBody,
   DeleteBookParams,
 } from "@/schema/book.schema";
-import { ProductService } from "@/modules/product.service";
-
-const productService = new ProductService();
+import { productService } from "@/modules/product.service";
+import { product } from "@/db/schema";
 
 /**
  * GET /books
+ * @returns all products in "Books" category
  */
 export const getBooksHandler = {
   handler: async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       const books = await productService.getProductByQuery("Books");
-
-      if (!books || books.length === 0) {
-        return sendError("No books found", "NOT_FOUND", reply, 404);
-      }
 
       return sendSuccess(
         { products: books },
@@ -42,6 +38,8 @@ export const getBooksHandler = {
 
 /**
  * GET /books/:bookId
+ *
+ * @returns single product in "Books" category by ID
  */
 export const getBookByIdHandler = {
   handler: async (
@@ -51,15 +49,6 @@ export const getBookByIdHandler = {
     try {
       const { bookId } = request.params;
       const product = await productService.getProductById(bookId);
-
-      if (!product || product.category !== "Books") {
-        return sendError(
-          `Book with ID ${bookId} not found`,
-          "NOT_FOUND",
-          reply,
-          404,
-        );
-      }
 
       return sendSuccess(product, "Book fetched successfully", reply, 200);
     } catch (error) {
@@ -83,8 +72,10 @@ export const createBookHandler = {
     reply: FastifyReply,
   ) => {
     try {
+      const product = request.body;
+
       const payload = {
-        ...request.body,
+        ...product,
         category: "Books",
       } as CreateBookBody & { category: "Books" };
       const result = await productService.createProduct(payload);
@@ -131,10 +122,7 @@ export const updateBookHandler = {
         );
       }
 
-      const result = await productService.updateProduct(
-        bookId,
-        request.body as any,
-      );
+      const result = await productService.updateProduct(bookId, product as any);
 
       if (!result) {
         return sendError(
