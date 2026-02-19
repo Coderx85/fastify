@@ -10,6 +10,13 @@ export const config = {
     (process.env.POLAR_SERVER as "sandbox" | "production") || "sandbox",
   POLAR_PRODUCT_ID: process.env.POLAR_PRODUCT_ID || "",
 
+  // Razorpay Configuration (supports existing KEY_ID/KEY_SECRET fallbacks)
+  RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID || process.env.KEY_ID || "",
+  RAZORPAY_KEY_SECRET:
+    process.env.RAZORPAY_KEY_SECRET || process.env.KEY_SECRET || "",
+  RAZORPAY_WEBHOOK_SECRET: process.env.RAZORPAY_WEBHOOK_SECRET || "",
+  RAZORPAY_CURRENCY: process.env.RAZORPAY_CURRENCY || "INR",
+
   // Checkout URLs
   SUCCESS_URL:
     process.env.SUCCESS_URL || "http://localhost:3000/checkout/success",
