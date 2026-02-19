@@ -9,7 +9,9 @@ import { successResponseSchema } from "@/types/api";
 
 // Reuse product schema (books are products with category = "Books")
 export const bookSchema = productSchema;
-export const booksDataSchema = productsDataSchema;
+export const booksDataSchema = productsDataSchema.extend({
+  currency: z.enum(["inr", "usd"]),
+});
 
 // ============ GET /books ============
 export const getBooksSchema = {

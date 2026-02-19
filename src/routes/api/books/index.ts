@@ -19,7 +19,6 @@ import {
 export default async function booksRoute(fastify: FastifyInstance) {
   // Get all books
   fastify.withTypeProvider<ZodTypeProvider>().get("/", {
-    schema: getBooksSchema,
     handler: getBooksHandler.handler,
   });
 

@@ -1,10 +1,40 @@
-CREATE TYPE "public"."category" AS ENUM('Electronics', 'Clothing', 'Books', 'Furniture');--> statement-breakpoint
-CREATE TYPE "public"."currency" AS ENUM('usd');--> statement-breakpoint
-CREATE TYPE "public"."order_status" AS ENUM('processing', 'delivered', 'cancelled');--> statement-breakpoint
-CREATE TYPE "public"."payment_method" AS ENUM('polar');--> statement-breakpoint
-CREATE TYPE "public"."payment_status" AS ENUM('pending', 'succeeded', 'failed');--> statement-breakpoint
-CREATE TYPE "public"."subscription_status" AS ENUM('active', 'canceled', 'expired', 'past_due');--> statement-breakpoint
-CREATE TABLE "order_product" (
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'category') THEN
+    CREATE TYPE public.category AS ENUM('Electronics', 'Clothing', 'Books', 'Furniture');
+  END IF;
+END$$;--> statement-breakpoint
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'currency') THEN
+    CREATE TYPE public.currency AS ENUM('usd');
+  END IF;
+END$$;--> statement-breakpoint
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'order_status') THEN
+    CREATE TYPE public.order_status AS ENUM('processing', 'delivered', 'cancelled');
+  END IF;
+END$$;--> statement-breakpoint
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'payment_method') THEN
+    CREATE TYPE public.payment_method AS ENUM('polar');
+  END IF;
+END$$;--> statement-breakpoint
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'payment_status') THEN
+    CREATE TYPE public.payment_status AS ENUM('pending', 'succeeded', 'failed');
+  END IF;
+END$$;--> statement-breakpoint
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'subscription_status') THEN
+    CREATE TYPE public.subscription_status AS ENUM('active', 'canceled', 'expired', 'past_due');
+  END IF;
+END$$;--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "order_product" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"order_id" integer NOT NULL,
 	"product_id" integer NOT NULL,
@@ -13,7 +43,7 @@ CREATE TABLE "order_product" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "orders" (
+CREATE TABLE IF NOT EXISTS "orders" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"user_id" integer NOT NULL,
 	"total_amount" integer DEFAULT 0 NOT NULL,
@@ -25,7 +55,7 @@ CREATE TABLE "orders" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "payments" (
+CREATE TABLE IF NOT EXISTS "payments" (
 	"id" varchar PRIMARY KEY NOT NULL,
 	"order_id" integer NOT NULL,
 	"amount" integer NOT NULL,
@@ -36,7 +66,7 @@ CREATE TABLE "payments" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "product" (
+CREATE TABLE IF NOT EXISTS "product" (
 	"id" serial NOT NULL,
 	"product_id" serial PRIMARY KEY NOT NULL,
 	"name" varchar(255) NOT NULL,
@@ -45,7 +75,7 @@ CREATE TABLE "product" (
 	"category" "category" NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "subscriptions" (
+CREATE TABLE IF NOT EXISTS "subscriptions" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"user_id" integer NOT NULL,
 	"polar_customer_id" varchar(255) NOT NULL,
@@ -62,7 +92,7 @@ CREATE TABLE "subscriptions" (
 	CONSTRAINT "subscriptions_polar_subscription_id_unique" UNIQUE("polar_subscription_id")
 );
 --> statement-breakpoint
-CREATE TABLE "users" (
+CREATE TABLE IF NOT EXISTS "users" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" varchar(255) NOT NULL,
 	"email" varchar(255) NOT NULL,
@@ -71,21 +101,56 @@ CREATE TABLE "users" (
 	CONSTRAINT "users_email_unique" UNIQUE("email")
 );
 --> statement-breakpoint
-ALTER TABLE "order_product" ADD CONSTRAINT "order_product_order_id_orders_id_fk" FOREIGN KEY ("order_id") REFERENCES "public"."orders"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "order_product" ADD CONSTRAINT "order_product_product_id_product_product_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."product"("product_id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "orders" ADD CONSTRAINT "orders_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "payments" ADD CONSTRAINT "payments_order_id_orders_id_fk" FOREIGN KEY ("order_id") REFERENCES "public"."orders"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "subscriptions" ADD CONSTRAINT "subscriptions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-CREATE INDEX "order_product_order_id_idx" ON "order_product" USING btree ("order_id");--> statement-breakpoint
-CREATE INDEX "order_product_product_id_idx" ON "order_product" USING btree ("product_id");--> statement-breakpoint
-CREATE INDEX "orders_user_id_idx" ON "orders" USING btree ("user_id");--> statement-breakpoint
-CREATE INDEX "orders_status_idx" ON "orders" USING btree ("status");--> statement-breakpoint
-CREATE INDEX "orders_created_at_idx" ON "orders" USING btree ("created_at");--> statement-breakpoint
-CREATE INDEX "payments_order_id_idx" ON "payments" USING btree ("order_id");--> statement-breakpoint
-CREATE INDEX "payments_status_idx" ON "payments" USING btree ("status");--> statement-breakpoint
-CREATE INDEX "index" ON "product" USING btree ("name");--> statement-breakpoint
-CREATE INDEX "product_id_index_column" ON "product" USING btree ("product_id");--> statement-breakpoint
-CREATE INDEX "subscriptions_user_id_idx" ON "subscriptions" USING btree ("user_id");--> statement-breakpoint
-CREATE INDEX "subscriptions_polar_customer_id_idx" ON "subscriptions" USING btree ("polar_customer_id");--> statement-breakpoint
-CREATE INDEX "subscriptions_polar_subscription_id_idx" ON "subscriptions" USING btree ("polar_subscription_id");--> statement-breakpoint
-CREATE INDEX "subscriptions_status_idx" ON "subscriptions" USING btree ("status");
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'order_product_order_id_orders_id_fk'
+  ) THEN
+    ALTER TABLE "order_product" ADD CONSTRAINT "order_product_order_id_orders_id_fk" FOREIGN KEY ("order_id") REFERENCES "public"."orders"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END$$;--> statement-breakpoint
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'order_product_product_id_product_product_id_fk'
+  ) THEN
+    ALTER TABLE "order_product" ADD CONSTRAINT "order_product_product_id_product_product_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."product"("product_id") ON DELETE restrict ON UPDATE no action;
+  END IF;
+END$$;--> statement-breakpoint
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'orders_user_id_users_id_fk'
+  ) THEN
+    ALTER TABLE "orders" ADD CONSTRAINT "orders_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END$$;--> statement-breakpoint
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'payments_order_id_orders_id_fk'
+  ) THEN
+    ALTER TABLE "payments" ADD CONSTRAINT "payments_order_id_orders_id_fk" FOREIGN KEY ("order_id") REFERENCES "public"."orders"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END$$;--> statement-breakpoint
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'subscriptions_user_id_users_id_fk'
+  ) THEN
+    ALTER TABLE "subscriptions" ADD CONSTRAINT "subscriptions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END$$;--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "order_product_order_id_idx" ON "order_product" USING btree ("order_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "order_product_product_id_idx" ON "order_product" USING btree ("product_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "orders_user_id_idx" ON "orders" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "orders_status_idx" ON "orders" USING btree ("status");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "orders_created_at_idx" ON "orders" USING btree ("created_at");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "payments_order_id_idx" ON "payments" USING btree ("order_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "payments_status_idx" ON "payments" USING btree ("status");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "index" ON "product" USING btree ("name");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "product_id_index_column" ON "product" USING btree ("product_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "subscriptions_user_id_idx" ON "subscriptions" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "subscriptions_polar_customer_id_idx" ON "subscriptions" USING btree ("polar_customer_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "subscriptions_polar_subscription_id_idx" ON "subscriptions" USING btree ("polar_subscription_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "subscriptions_status_idx" ON "subscriptions" USING btree ("status");

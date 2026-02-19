@@ -1,22 +1,44 @@
 import { db } from "@/db";
-import { product, TCategoryEnumValues, TProduct } from "@/db/schema";
+import {
+  currencyEnum,
+  product,
+  TCategoryEnumValues,
+  TProduct,
+} from "@/db/schema";
 import { config } from "@/lib/config";
-import { productsSample } from "@/sample/products.sample";
 import { CreateProductBody, UpdateProductBody } from "@/schema/product.schema";
+import { IProducts } from "@/types/payment";
 import { Polar } from "@polar-sh/sdk";
 import { eq } from "drizzle-orm";
+import { STATUS_CODES } from "http";
 
 const polar = new Polar({
   accessToken: config.POLAR_ACCESS_TOKEN,
   server: "sandbox",
 });
 
-export class ProductService {
+class ProductService {
   /**
    * Check if Polar API is configured
    */
   private isPolarConfigured(): boolean {
     return !!(config.POLAR_ACCESS_TOKEN && config.POLAR_ORGANIZATION_ID);
+  }
+
+  private convertToPaises(priceInRupees: number): number {
+    return Math.round(priceInRupees * 100); // Convert rupees to paises
+  }
+
+  private formatProduct(product: TProduct): IProducts {
+    return {
+      ...product,
+      price: product.price / 100, // Convert paises to rupees
+      currency: currencyEnum.enumValues["1"],
+    };
+  }
+
+  private formatProducts(products: TProduct[]): IProducts[] {
+    return products.map((product) => this.formatProduct(product));
   }
 
   /**
@@ -25,50 +47,18 @@ export class ProductService {
    * @returns Array of products
    */
   async getAllProducts() {
-    // If Polar is not configured, return sample data
-    if (!this.isPolarConfigured()) {
-      console.log("Polar API not configured, returning sample products");
-      return productsSample;
-    }
-
     try {
-      const products = await polar.products.list({
-        organizationId: config.POLAR_ORGANIZATION_ID,
-      });
+      const products = await db.select().from(product);
 
-      const result = products.result.items;
+      // Be default currency is in paises, convert to rupees and dollars in the application layer
+      const formattedProducts: IProducts[] = this.formatProducts(products);
 
-      // If no products from Polar, return sample data
-      if (!result || result.length === 0) {
-        console.log("No products from Polar API, returning sample products");
-        return productsSample;
-      }
-
-      const productsData: TProduct[] = result.map((item) => {
-        // Safely get the first price and its amount
-        const firstPrice =
-          item.prices && item.prices.length > 0 ? item.prices[0] : null;
-        let priceAmount = 0;
-
-        if (firstPrice && "priceAmount" in firstPrice) {
-          priceAmount = firstPrice.priceAmount;
-        }
-
-        return {
-          // Polar IDs are strings, so we provide default numeric IDs for the local schema
-          id: 0,
-          productId: 0,
-          name: item.name || "",
-          description: item.description || "",
-          price: priceAmount,
-          category: "Books",
-        };
-      });
-      return productsData;
-    } catch (error) {
-      // If Polar API fails, fallback to sample data
-      console.error("Polar API error, falling back to sample products:", error);
-      return productsSample;
+      return formattedProducts;
+    } catch (error: unknown) {
+      console.error("Error fetching products from database:", error);
+      throw new Error(
+        error instanceof Error ? error.message : "Failed to fetch products",
+      );
     }
   }
 
@@ -77,16 +67,23 @@ export class ProductService {
    * @param query Category enum value
    * @returns Array of products
    */
-  async getProductByQuery(query: TCategoryEnumValues) {
-    // const products = await db
-    //   .select()
-    //   .from(product)
-    //   .where(eq(product.category, query));
+  async getProductByQuery(query: TCategoryEnumValues): Promise<IProducts[]> {
+    try {
+      const products = await db
+        .select()
+        .from(product)
+        .where(eq(product.category, query))
+        .execute();
 
-    const products = productsSample.filter(
-      (product) => product.category === query,
-    );
-    return products;
+      const formattedProducts = this.formatProducts(products);
+      return formattedProducts;
+    } catch (error: unknown) {
+      throw new Error(
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch products by category",
+      );
+    }
   }
 
   /**
@@ -95,13 +92,34 @@ export class ProductService {
    * @returns Product object
    */
   async getProductById(id: number) {
-    const [products] = await db
-      .select()
-      .from(product)
-      .where(eq(product.productId, id));
+    try {
+      const [products] = await db
+        .select()
+        .from(product)
+        .where(eq(product.id, id));
 
-    // const foundProduct = productsSample.find((p) => p.productId === id);
-    return products;
+      if (!products) {
+        throw new Error(`Product with ID ${id} not found`, {
+          cause: {
+            STATUS_CODES: STATUS_CODES["404"],
+          },
+        });
+      }
+
+      const formattedProduct = this.formatProduct(products);
+      return formattedProduct;
+    } catch (error: unknown) {
+      throw new Error(
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch product by ID",
+        {
+          cause: {
+            STATUS_CODES: STATUS_CODES["500"],
+          },
+        },
+      );
+    }
   }
 
   /**
@@ -117,21 +135,10 @@ export class ProductService {
         .values({
           name: data.name,
           description: data.description,
-          price: data.price,
+          price: this.convertToPaises(data.price),
           category: data.category,
         })
-        .returning({
-          id: product.id,
-          productId: product.productId,
-          name: product.name,
-          description: product.description,
-          price: product.price,
-          category: product.category,
-        });
-
-      if (!created) {
-        throw new Error("Failed to create product");
-      }
+        .returning();
 
       return created;
     } catch (error) {
@@ -146,20 +153,29 @@ export class ProductService {
    * @returns Updated product or null if not found
    */
   async updateProduct(id: number, data: UpdateProductBody) {
-    const productIndex = productsSample.findIndex((p) => p.productId === id);
+    try {
+      const existingProduct = await this.getProductById(id);
 
-    if (productIndex === -1) {
-      return null;
+      if (!existingProduct) {
+        throw new Error(`Product with ID ${id} not found`, {
+          cause: {
+            STATUS_CODES: STATUS_CODES["404"],
+          },
+        });
+      }
+
+      const updatedProduct = db
+        .update(product)
+        .set(data)
+        .where(eq(product.id, id))
+        .returning();
+
+      return updatedProduct;
+    } catch (error: unknown) {
+      throw new Error(
+        error instanceof Error ? error.message : "Failed to update product",
+      );
     }
-
-    const updatedProduct = {
-      ...productsSample[productIndex],
-      ...data,
-    };
-
-    // await db.update(product).set(data).where(eq(product.productId, id));
-    productsSample[productIndex] = updatedProduct;
-    return updatedProduct;
   }
 
   /**
@@ -168,14 +184,15 @@ export class ProductService {
    * @returns Deletion status
    */
   async deleteProduct(id: number) {
-    const productIndex = productsSample.findIndex((p) => p.productId === id);
-
-    if (productIndex === -1) {
-      return { deleted: false, productId: id };
+    try {
+      await db.delete(product).where(eq(product.id, id));
+      return { deleted: true, productId: id };
+    } catch (error: unknown) {
+      throw new Error(
+        error instanceof Error ? error.message : "Failed to delete product",
+      );
     }
-
-    // await db.delete(product).where(eq(product.productId, id));
-    productsSample.splice(productIndex, 1);
-    return { deleted: true, productId: id };
   }
 }
+
+export const productService = new ProductService();
