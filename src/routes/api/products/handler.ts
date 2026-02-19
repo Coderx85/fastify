@@ -8,10 +8,7 @@ import {
   UpdateProductBody,
   DeleteProductParams,
 } from "@/schema/product.schema";
-import { ProductService } from "@/modules/product.service";
-
-// Initialize service
-const productService = new ProductService();
+import { productService } from "@/modules/product.service";
 
 /**
  * Handler for getting all products (with optional category filter)

@@ -39,9 +39,12 @@ export const paymentStatusEnum = pgEnum("payment_status", [
   "failed",
 ]);
 
-export const paymentMethodEnum = pgEnum("payment_method", ["polar"]);
+export const paymentMethodEnum = pgEnum("payment_method", [
+  "polar",
+  "razorpay",
+]);
 
-export const currencyEnum = pgEnum("currency", ["usd"]);
+export const currencyEnum = pgEnum("currency", ["usd", "inr"]);
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -77,7 +80,7 @@ export const product = pgTable(
     productId: serial("product_id").primaryKey(),
     name: varchar("name", { length: 255 }).notNull(),
     description: text("description").notNull(),
-    price: integer("price").notNull(),
+    price: integer("price").notNull(), // store price in cents and convert to rupees and dollar in the application layer
     category: categoryEnum("category").notNull(),
   },
   (table) => [
