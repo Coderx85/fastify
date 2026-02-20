@@ -96854,14 +96854,31 @@ var Polar = class extends ClientSDK {
 
 // src/modules/payment/polar.service.ts
 init_config();
-var polar = new Polar({
-  accessToken: config2.POLAR_ACCESS_TOKEN,
-  server: config2.POLAR_SERVER
-});
+var polar = null;
+function getPolarInstance() {
+  if (!config2.POLAR_ACCESS_TOKEN) {
+    return null;
+  }
+  if (!polar) {
+    polar = new Polar({
+      accessToken: config2.POLAR_ACCESS_TOKEN,
+      server: config2.POLAR_SERVER
+    });
+  }
+  return polar;
+}
 var PolarBackendService = class {
+  getPolarInstance() {
+    const instance = getPolarInstance();
+    if (!instance) {
+      throw new Error("Polar SDK is not configured. Please set POLAR_ACCESS_TOKEN environment variable.");
+    }
+    return instance;
+  }
   async createCheckout(params) {
     try {
-      const checkout = await polar.checkouts.create({
+      const polar4 = this.getPolarInstance();
+      const checkout = await polar4.checkouts.create({
         products: [config2.POLAR_PRODUCT_ID],
         customerEmail: params.customerEmail,
         customerName: params.customerName,
@@ -96882,7 +96899,8 @@ var PolarBackendService = class {
   }
   async getCheckout(checkoutId) {
     try {
-      const checkout = await polar.checkouts.get({ id: checkoutId });
+      const polar4 = this.getPolarInstance();
+      const checkout = await polar4.checkouts.get({ id: checkoutId });
       return checkout;
     } catch (error48) {
       console.error("Failed to get checkout:", error48);
@@ -96891,7 +96909,8 @@ var PolarBackendService = class {
   }
   async createCustomer(params) {
     try {
-      const customer = await polar.customers.create({
+      const polar4 = this.getPolarInstance();
+      const customer = await polar4.customers.create({
         email: params.email,
         name: params.name,
         externalId: params.externalId,
@@ -96911,7 +96930,8 @@ var PolarBackendService = class {
   }
   async getCustomer(customerId) {
     try {
-      const customer = await polar.customers.get({ id: customerId });
+      const polar4 = this.getPolarInstance();
+      const customer = await polar4.customers.get({ id: customerId });
       return customer;
     } catch (error48) {
       console.error("Failed to get customer:", error48);
@@ -96920,7 +96940,8 @@ var PolarBackendService = class {
   }
   async getCustomerByExternalId(externalId) {
     try {
-      const customer = await polar.customers.getExternal({
+      const polar4 = this.getPolarInstance();
+      const customer = await polar4.customers.getExternal({
         externalId
       });
       return customer;
@@ -96931,7 +96952,8 @@ var PolarBackendService = class {
   }
   async listCustomers(limit = 20) {
     try {
-      const customersResponse = await polar.customers.list({
+      const polar4 = this.getPolarInstance();
+      const customersResponse = await polar4.customers.list({
         organizationId: config2.POLAR_ORGANIZATION_ID,
         limit
       });
@@ -96948,7 +96970,8 @@ var PolarBackendService = class {
   }
   async getCustomerSubscriptions(customerId) {
     try {
-      const subscriptionsResponse = await polar.subscriptions.list({
+      const polar4 = this.getPolarInstance();
+      const subscriptionsResponse = await polar4.subscriptions.list({
         customerId,
         organizationId: config2.POLAR_ORGANIZATION_ID
       });
@@ -96964,7 +96987,8 @@ var PolarBackendService = class {
   }
   async getSubscription(subscriptionId) {
     try {
-      const subscription = await polar.subscriptions.get({
+      const polar4 = this.getPolarInstance();
+      const subscription = await polar4.subscriptions.get({
         id: subscriptionId
       });
       return subscription;
@@ -96992,7 +97016,8 @@ var PolarBackendService = class {
   }
   async revokeSubscription(subscriptionId) {
     try {
-      const subscription = await polar.subscriptions.revoke({
+      const polar4 = this.getPolarInstance();
+      const subscription = await polar4.subscriptions.revoke({
         id: subscriptionId
       });
       return subscription;
@@ -97032,7 +97057,8 @@ var PolarBackendService = class {
   }
   async getProduct(productId) {
     try {
-      const product2 = await polar.products.get({ id: productId });
+      const polar4 = this.getPolarInstance();
+      const product2 = await polar4.products.get({ id: productId });
       return product2;
     } catch (error48) {
       console.error("Failed to get product:", error48);
@@ -97057,7 +97083,8 @@ var PolarBackendService = class {
   }
   async getOrder(orderId) {
     try {
-      const order = await polar.orders.get({ id: orderId });
+      const polar4 = this.getPolarInstance();
+      const order = await polar4.orders.get({ id: orderId });
       return order;
     } catch (error48) {
       console.error("Failed to get order:", error48);
@@ -97101,7 +97128,8 @@ var PolarBackendService = class {
   }
   async getCustomerState(customerId) {
     try {
-      const state = await polar.customers.getState({ id: customerId });
+      const polar4 = this.getPolarInstance();
+      const state = await polar4.customers.getState({ id: customerId });
       return state;
     } catch (error48) {
       console.error("Failed to get customer state:", error48);
@@ -97110,7 +97138,8 @@ var PolarBackendService = class {
   }
   async getCustomerStateByExternalId(externalId) {
     try {
-      const state = await polar.customers.getStateExternal({ externalId });
+      const polar4 = this.getPolarInstance();
+      const state = await polar4.customers.getStateExternal({ externalId });
       return state;
     } catch (error48) {
       console.error("Failed to get customer state by external ID:", error48);
@@ -112711,10 +112740,6 @@ var deleteProductSchema = {
 // src/modules/product.service.ts
 init_config();
 import { STATUS_CODES as STATUS_CODES2 } from "http";
-var polar2 = new Polar({
-  accessToken: config2.POLAR_ACCESS_TOKEN,
-  server: "sandbox"
-});
 var ProductService = class {
   /**
    * Check if Polar API is configured
@@ -113759,10 +113784,19 @@ async function resetPasswordRoute(fastify) {
 
 // src/modules/polar-order.service.ts
 init_config();
-var polar3 = new Polar({
-  accessToken: config2.POLAR_ACCESS_TOKEN,
-  server: config2.POLAR_SERVER
-});
+var polar2 = null;
+function getPolarInstance2() {
+  if (!config2.POLAR_ACCESS_TOKEN) {
+    return null;
+  }
+  if (!polar2) {
+    polar2 = new Polar({
+      accessToken: config2.POLAR_ACCESS_TOKEN,
+      server: config2.POLAR_SERVER
+    });
+  }
+  return polar2;
+}
 var ordersStore = /* @__PURE__ */ new Map();
 var userAccessStore = /* @__PURE__ */ new Map();
 var PolarOrderService = class {
@@ -113832,7 +113866,11 @@ var PolarOrderService = class {
    */
   async getOrderFromPolar(orderId) {
     try {
-      const order = await polar3.orders.get({ id: orderId });
+      const polarInstance = getPolarInstance2();
+      if (!polarInstance) {
+        throw new Error("Polar SDK is not configured");
+      }
+      const order = await polarInstance.orders.get({ id: orderId });
       return order;
     } catch (error48) {
       console.error("Failed to get order from Polar:", error48);
@@ -113844,7 +113882,11 @@ var PolarOrderService = class {
    */
   async getCustomerOrdersFromPolar(customerId) {
     try {
-      const ordersResponse = await polar3.orders.list({
+      const polarInstance = getPolarInstance2();
+      if (!polarInstance) {
+        throw new Error("Polar SDK is not configured");
+      }
+      const ordersResponse = await polarInstance.orders.list({
         customerId,
         productBillingType: "one_time"
       });
@@ -113864,11 +113906,15 @@ var PolarOrderService = class {
    */
   async verifyUserPaymentFromPolar(externalId) {
     try {
-      const customer = await polar3.customers.getExternal({ externalId });
+      const polarInstance = getPolarInstance2();
+      if (!polarInstance) {
+        return { hasPaid: false };
+      }
+      const customer = await polarInstance.customers.getExternal({ externalId });
       if (!customer) {
         return { hasPaid: false };
       }
-      const ordersResponse = await polar3.orders.list({
+      const ordersResponse = await polarInstance.orders.list({
         customerId: customer.id,
         productId: config2.POLAR_PRODUCT_ID,
         productBillingType: "one_time"
@@ -113894,7 +113940,11 @@ var PolarOrderService = class {
    */
   async getProduct() {
     try {
-      const product2 = await polar3.products.get({ id: config2.POLAR_PRODUCT_ID });
+      const polarInstance = getPolarInstance2();
+      if (!polarInstance) {
+        throw new Error("Polar SDK is not configured");
+      }
+      const product2 = await polarInstance.products.get({ id: config2.POLAR_PRODUCT_ID });
       return product2;
     } catch (error48) {
       console.error("Failed to get product:", error48);
@@ -113906,7 +113956,11 @@ var PolarOrderService = class {
    */
   async listProducts() {
     try {
-      const productsResponse = await polar3.products.list({
+      const polarInstance = getPolarInstance2();
+      if (!polarInstance) {
+        throw new Error("Polar SDK is not configured");
+      }
+      const productsResponse = await polarInstance.products.list({
         isRecurring: false
         // Only one-time products
       });
@@ -114378,10 +114432,19 @@ async function checkoutRoutes(fastify) {
 
 // src/routes/api/checkout/index.ts
 init_config();
-var polar4 = new Polar({
-  accessToken: config2.POLAR_ACCESS_TOKEN,
-  server: config2.POLAR_SERVER
-});
+var polar3 = null;
+function getPolarInstance3() {
+  if (!config2.POLAR_ACCESS_TOKEN) {
+    return null;
+  }
+  if (!polar3) {
+    polar3 = new Polar({
+      accessToken: config2.POLAR_ACCESS_TOKEN,
+      server: config2.POLAR_SERVER
+    });
+  }
+  return polar3;
+}
 var CheckoutQuerySchema = external_exports2.object({
   // Customer identification (use your internal user ID)
   userId: external_exports2.string(),
@@ -114412,7 +114475,17 @@ async function checkoutRoutes2(fastify) {
             400
           );
         }
-        const checkout = await polar4.checkouts.create({
+        const polarInstance = getPolarInstance3();
+        if (!polarInstance) {
+          sendError(
+            "Polar SDK not configured",
+            "PAYMENT_NOT_CONFIGURED",
+            reply,
+            503
+          );
+          return;
+        }
+        const checkout = await polarInstance.checkouts.create({
           // Your SaaS product from config
           products: [config2.POLAR_PRODUCT_ID],
           // Link to your internal user (critical for access granting)
@@ -114461,7 +114534,7 @@ async function checkoutRoutes2(fastify) {
     async (request, reply) => {
       try {
         const { userId, email: email3, name } = request.body;
-        const checkout = await polar4.checkouts.create({
+        const checkout = await polar3.checkouts.create({
           products: [config2.POLAR_PRODUCT_ID],
           externalCustomerId: userId,
           customerEmail: email3,
@@ -114486,7 +114559,7 @@ async function checkoutRoutes2(fastify) {
   );
   app2.get("/product", async (request, reply) => {
     try {
-      const product2 = await polar4.products.get({
+      const product2 = await polar3.products.get({
         id: config2.POLAR_PRODUCT_ID
       });
       const price = product2.prices?.[0];

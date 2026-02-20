@@ -2,11 +2,21 @@ import { Polar } from "@polar-sh/sdk";
 import { config } from "@/lib/config";
 import { Checkout } from "@polar-sh/fastify";
 
-// Initialize Polar SDK - uses sandbox or production based on config
-const polar = new Polar({
-  server: config.POLAR_SERVER,
-  accessToken: config.POLAR_ACCESS_TOKEN,
-});
+// Initialize Polar SDK only when credentials are available
+let polar: Polar | null = null;
+
+function getPolarInstance(): Polar | null {
+  if (!config.POLAR_ACCESS_TOKEN) {
+    return null;
+  }
+  if (!polar) {
+    polar = new Polar({
+      server: config.POLAR_SERVER,
+      accessToken: config.POLAR_ACCESS_TOKEN,
+    });
+  }
+  return polar;
+}
 
 class PolarService {
   /**
@@ -25,7 +35,7 @@ class PolarService {
    * Get the Polar SDK instance for direct API calls
    */
   getPolarClient() {
-    return polar;
+    return getPolarInstance();
   }
 }
 

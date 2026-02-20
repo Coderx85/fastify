@@ -12,10 +12,20 @@ import { Polar } from "@polar-sh/sdk";
 import { eq } from "drizzle-orm";
 import { STATUS_CODES } from "http";
 
-const polar = new Polar({
-  accessToken: config.POLAR_ACCESS_TOKEN,
-  server: "sandbox",
-});
+let polar: Polar | null = null;
+
+function getPolarInstance(): Polar | null {
+  if (!config.POLAR_ACCESS_TOKEN) {
+    return null;
+  }
+  if (!polar) {
+    polar = new Polar({
+      accessToken: config.POLAR_ACCESS_TOKEN,
+      server: "sandbox",
+    });
+  }
+  return polar;
+}
 
 class ProductService {
   /**

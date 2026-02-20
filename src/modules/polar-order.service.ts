@@ -8,10 +8,20 @@ import { config } from "@/lib/config";
  * For your use case: one SaaS license per user.
  */
 
-const polar = new Polar({
-  accessToken: config.POLAR_ACCESS_TOKEN,
-  server: config.POLAR_SERVER,
-});
+let polar: Polar | null = null;
+
+function getPolarInstance(): Polar | null {
+  if (!config.POLAR_ACCESS_TOKEN) {
+    return null;
+  }
+  if (!polar) {
+    polar = new Polar({
+      accessToken: config.POLAR_ACCESS_TOKEN,
+      server: config.POLAR_SERVER,
+    });
+  }
+  return polar;
+}
 
 // In-memory store for demo. Replace with your database.
 interface PolarOrder {
@@ -147,7 +157,11 @@ class PolarOrderService {
    */
   async getOrderFromPolar(orderId: string) {
     try {
-      const order = await polar.orders.get({ id: orderId });
+      const polarInstance = getPolarInstance();
+      if (!polarInstance) {
+        throw new Error('Polar SDK is not configured');
+      }
+      const order = await polarInstance.orders.get({ id: orderId });
       return order;
     } catch (error) {
       console.error("Failed to get order from Polar:", error);
@@ -160,7 +174,11 @@ class PolarOrderService {
    */
   async getCustomerOrdersFromPolar(customerId: string) {
     try {
-      const ordersResponse = await polar.orders.list({
+      const polarInstance = getPolarInstance();
+      if (!polarInstance) {
+        throw new Error('Polar SDK is not configured');
+      }
+      const ordersResponse = await polarInstance.orders.list({
         customerId,
         productBillingType: "one_time",
       });
@@ -185,15 +203,19 @@ class PolarOrderService {
     order?: unknown;
   }> {
     try {
+      const polarInstance = getPolarInstance();
+      if (!polarInstance) {
+        return { hasPaid: false };
+      }
       // Get customer by external ID
-      const customer = await polar.customers.getExternal({ externalId });
+      const customer = await polarInstance.customers.getExternal({ externalId });
 
       if (!customer) {
         return { hasPaid: false };
       }
 
       // Get their orders
-      const ordersResponse = await polar.orders.list({
+      const ordersResponse = await polarInstance.orders.list({
         customerId: customer.id,
         productId: config.POLAR_PRODUCT_ID,
         productBillingType: "one_time",
@@ -224,7 +246,11 @@ class PolarOrderService {
    */
   async getProduct() {
     try {
-      const product = await polar.products.get({ id: config.POLAR_PRODUCT_ID });
+      const polarInstance = getPolarInstance();
+      if (!polarInstance) {
+        throw new Error('Polar SDK is not configured');
+      }
+      const product = await polarInstance.products.get({ id: config.POLAR_PRODUCT_ID });
       return product;
     } catch (error) {
       console.error("Failed to get product:", error);
@@ -237,7 +263,11 @@ class PolarOrderService {
    */
   async listProducts() {
     try {
-      const productsResponse = await polar.products.list({
+      const polarInstance = getPolarInstance();
+      if (!polarInstance) {
+        throw new Error('Polar SDK is not configured');
+      }
+      const productsResponse = await polarInstance.products.list({
         isRecurring: false, // Only one-time products
       });
 

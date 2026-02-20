@@ -1,10 +1,20 @@
 import { Polar } from "@polar-sh/sdk";
 import { config } from "@/lib/config";
 
-const polar = new Polar({
-  accessToken: config.POLAR_ACCESS_TOKEN,
-  server: config.POLAR_SERVER,
-});
+let polar: Polar | null = null;
+
+function getPolarInstance(): Polar | null {
+  if (!config.POLAR_ACCESS_TOKEN) {
+    return null;
+  }
+  if (!polar) {
+    polar = new Polar({
+      accessToken: config.POLAR_ACCESS_TOKEN,
+      server: config.POLAR_SERVER,
+    });
+  }
+  return polar;
+}
 
 export interface CreateCheckoutParams {
   customerEmail?: string;
@@ -24,8 +34,17 @@ export interface CustomerParams {
 }
 
 class PolarBackendService {
+  private getPolarInstance(): Polar {
+    const instance = getPolarInstance();
+    if (!instance) {
+      throw new Error('Polar SDK is not configured. Please set POLAR_ACCESS_TOKEN environment variable.');
+    }
+    return instance;
+  }
+
   async createCheckout(params: CreateCheckoutParams) {
     try {
+      const polar = this.getPolarInstance();
       const checkout = await polar.checkouts.create({
         products: [config.POLAR_PRODUCT_ID],
         customerEmail: params.customerEmail,
@@ -49,6 +68,7 @@ class PolarBackendService {
 
   async getCheckout(checkoutId: string) {
     try {
+      const polar = this.getPolarInstance();
       const checkout = await polar.checkouts.get({ id: checkoutId });
       return checkout;
     } catch (error) {
@@ -59,6 +79,7 @@ class PolarBackendService {
 
   async createCustomer(params: CustomerParams) {
     try {
+      const polar = this.getPolarInstance();
       const customer = await polar.customers.create({
         email: params.email,
         name: params.name,
@@ -81,6 +102,7 @@ class PolarBackendService {
 
   async getCustomer(customerId: string) {
     try {
+      const polar = this.getPolarInstance();
       const customer = await polar.customers.get({ id: customerId });
       return customer;
     } catch (error) {
@@ -91,6 +113,7 @@ class PolarBackendService {
 
   async getCustomerByExternalId(externalId: string) {
     try {
+      const polar = this.getPolarInstance();
       const customer = await polar.customers.getExternal({
         externalId: externalId,
       });
@@ -104,6 +127,7 @@ class PolarBackendService {
 
   async listCustomers(limit = 20) {
     try {
+      const polar = this.getPolarInstance();
       const customersResponse = await polar.customers.list({
         organizationId: config.POLAR_ORGANIZATION_ID,
         limit,
@@ -124,6 +148,7 @@ class PolarBackendService {
 
   async getCustomerSubscriptions(customerId: string) {
     try {
+      const polar = this.getPolarInstance();
       const subscriptionsResponse = await polar.subscriptions.list({
         customerId,
         organizationId: config.POLAR_ORGANIZATION_ID,
@@ -142,6 +167,7 @@ class PolarBackendService {
 
   async getSubscription(subscriptionId: string) {
     try {
+      const polar = this.getPolarInstance();
       const subscription = await polar.subscriptions.get({
         id: subscriptionId,
       });
@@ -174,6 +200,7 @@ class PolarBackendService {
 
   async revokeSubscription(subscriptionId: string) {
     try {
+      const polar = this.getPolarInstance();
       const subscription = await polar.subscriptions.revoke({
         id: subscriptionId,
       });
@@ -218,6 +245,7 @@ class PolarBackendService {
 
   async getProduct(productId: string) {
     try {
+      const polar = this.getPolarInstance();
       const product = await polar.products.get({ id: productId });
       return product;
     } catch (error) {
@@ -246,6 +274,7 @@ class PolarBackendService {
 
   async getOrder(orderId: string) {
     try {
+      const polar = this.getPolarInstance();
       const order = await polar.orders.get({ id: orderId });
       return order;
     } catch (error) {
@@ -303,6 +332,7 @@ class PolarBackendService {
 
   async getCustomerState(customerId: string) {
     try {
+      const polar = this.getPolarInstance();
       const state = await polar.customers.getState({ id: customerId });
       return state;
     } catch (error) {
@@ -312,8 +342,7 @@ class PolarBackendService {
   }
 
   async getCustomerStateByExternalId(externalId: string) {
-    try {
-      const state = await polar.customers.getStateExternal({ externalId });
+    try {      const polar = this.getPolarInstance();      const state = await polar.customers.getStateExternal({ externalId });
       return state;
     } catch (error) {
       console.error("Failed to get customer state by external ID:", error);

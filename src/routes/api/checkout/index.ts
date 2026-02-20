@@ -6,11 +6,21 @@ import { ZodTypeProvider } from "fastify-type-provider-zod";
 import { sendError, sendSuccess } from "@/lib";
 import { db } from "@/db";
 
-// Initialize Polar SDK
-const polar = new Polar({
-  accessToken: config.POLAR_ACCESS_TOKEN,
-  server: config.POLAR_SERVER,
-});
+// Initialize Polar SDK only when credentials are available
+let polar: Polar | null = null;
+
+function getPolarInstance(): Polar | null {
+  if (!config.POLAR_ACCESS_TOKEN) {
+    return null;
+  }
+  if (!polar) {
+    polar = new Polar({
+      accessToken: config.POLAR_ACCESS_TOKEN,
+      server: config.POLAR_SERVER,
+    });
+  }
+  return polar;
+}
 
 // Schema for checkout query parameters
 const CheckoutQuerySchema = z.object({
@@ -81,7 +91,17 @@ export default async function checkoutRoutes(fastify: FastifyInstance) {
         // Create checkout session using SDK
         // Note: User validation is optional - Polar handles customer management
         // The externalCustomerId links back to your system after payment
-        const checkout = await polar.checkouts.create({
+        const polarInstance = getPolarInstance();
+        if (!polarInstance) {
+          sendError(
+            "Polar SDK not configured",
+            "PAYMENT_NOT_CONFIGURED",
+            reply,
+            503,
+          );
+          return;
+        }
+        const checkout = await polarInstance.checkouts.create({
           // Your SaaS product from config
           products: [config.POLAR_PRODUCT_ID],
 

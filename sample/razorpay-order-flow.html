@@ -1,0 +1,238 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Razorpay — Order -> Pay Flow</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <style>
+      body {
+        font-family:
+          system-ui,
+          Segoe UI,
+          Roboto,
+          Helvetica,
+          Arial,
+          sans-serif;
+        padding: 20px;
+      }
+      label {
+        display: inline-block;
+        margin: 6px 8px 6px 0;
+      }
+      .panel {
+        border: 1px solid #eee;
+        padding: 12px;
+        margin: 12px 0;
+        background: #fafafa;
+      }
+      button {
+        padding: 8px 12px;
+      }
+      pre {
+        background: #111;
+        color: #0f0;
+        padding: 12px;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Razorpay — Create Order → Pay (demo)</h1>
+
+    <div class="panel">
+      <strong>Step 1 — Create order</strong>
+      <div style="margin-top: 8px">
+        <label
+          >User ID: <input id="userId" value="1" style="width: 72px"
+        /></label>
+        <label
+          >Product:
+          <select id="productSelect"></select
+        ></label>
+        <label>Qty: <input id="qty" value="1" style="width: 56px" /></label>
+        <label style="margin-left: 12px"
+          >Name: <input id="customerName" value="Demo User"
+        /></label>
+        <label style="margin-left: 12px"
+          >Email: <input id="customerEmail" value="sandbox_user@example.com"
+        /></label>
+        <button id="createOrder">Create Order</button>
+      </div>
+      <div id="orderInfo" style="margin-top: 8px"></div>
+    </div>
+
+    <div class="panel">
+      <strong>Step 2 — Pay with Razorpay</strong>
+      <div style="margin-top: 8px">
+        <button id="payBtn" disabled>Pay order</button>
+        <span id="payHint" style="margin-left: 12px; color: #666"
+          >Create an order first</span
+        >
+      </div>
+    </div>
+
+    <div class="panel">
+      <strong>Logs</strong>
+      <pre id="log">Ready.</pre>
+    </div>
+
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script>
+      const logEl = document.getElementById("log");
+      const log = (v) => {
+        logEl.textContent +=
+          "\n" + (typeof v === "string" ? v : JSON.stringify(v, null, 2));
+      };
+
+      const unwrap = async (res) => {
+        const body = await res.json().catch(() => null);
+        // support both envelope { ok, statusCode, message, data } and plain responses
+        return { status: res.status, body: body?.data ?? body ?? {} };
+      };
+
+      async function loadProducts() {
+        try {
+          const r = await fetch("http://localhost:4000/api/products");
+          const json = await r.json();
+          const products = json?.data?.products ?? json?.products ?? [];
+          const sel = document.getElementById("productSelect");
+          sel.innerHTML = "";
+          products.forEach((p) => {
+            const opt = document.createElement("option");
+            opt.value = p.productId;
+            opt.textContent = `${p.name} — ${p.price.toFixed(2)} ${p.currency ?? "USD"}`;
+            sel.appendChild(opt);
+          });
+        } catch (err) {
+          log("Failed to load products: " + err.message);
+        }
+      }
+
+      async function createOrder() {
+        const userId = Number(document.getElementById("userId").value || 1);
+        const productId = Number(
+          document.getElementById("productSelect").value,
+        );
+        const qty = Number(document.getElementById("qty").value || 1);
+        try {
+          const res = await fetch("http://localhost:4000/api/order", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              userId,
+              products: [{ productId, quantity: qty }],
+            }),
+          });
+          const data = await res.json();
+          log({ createOrder: { status: res.status, body: data } });
+          if (res.status === 201) {
+            const orderId = data?.data?.order?.id ?? data?.order?.id ?? null;
+            document.getElementById("orderInfo").innerHTML =
+              `<div>Order created — id: <strong>${orderId}</strong></div>`;
+            window._demoOrderId = orderId;
+            document.getElementById("payBtn").disabled = false;
+            document.getElementById("payHint").textContent = "Ready to pay";
+          } else {
+            document.getElementById("payHint").textContent =
+              "Failed to create order";
+          }
+        } catch (err) {
+          log("createOrder error: " + err.message);
+        }
+      }
+
+      async function createPaymentIntent(orderId) {
+        const customerName = document.getElementById("customerName").value;
+        const customerEmail = document.getElementById("customerEmail").value;
+        const res = await fetch("http://localhost:4000/api/payment/intent", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            orderId,
+            provider: "razorpay",
+            customerName,
+            customerEmail,
+            successUrl: "/checkout/success",
+          }),
+        });
+        const body = await res.json();
+        // unwrap envelope if present
+        return { status: res.status, data: body?.data ?? body };
+      }
+
+      async function verifyPayment(payload) {
+        const res = await fetch(
+          "http://localhost:4000/api/payment/razorpay/verify",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          },
+        );
+        const body = await res.json();
+        return { status: res.status, body: body?.data ?? body };
+      }
+
+      document
+        .getElementById("createOrder")
+        .addEventListener("click", async () => {
+          document.getElementById("payBtn").disabled = true;
+          await createOrder();
+        });
+
+      document.getElementById("payBtn").addEventListener("click", async () => {
+        const orderId =
+          window._demoOrderId ||
+          Number(document.getElementById("orderId").value || 0);
+        if (!orderId) return log("No orderId present. Create an order first.");
+
+        log("Creating Razorpay order for internal orderId=" + orderId);
+        const intent = await createPaymentIntent(orderId);
+        log({ intent });
+
+        if (![200, 201].includes(intent.status))
+          return log("Failed to create payment intent");
+
+        const { order, keyId, internalOrderId, successUrl } =
+          intent.data || intent;
+        const razorOrderId = order?.id || order;
+        if (!razorOrderId || !keyId)
+          return log("Missing keyId or order id from intent");
+
+        const options = {
+          key: keyId,
+          order_id: razorOrderId,
+          handler: async function (response) {
+            log({ razorpay_response: response });
+            const verify = await verifyPayment({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+            log({ verify });
+            if (verify.status === 200) {
+              const redirectTo =
+                (successUrl || "/checkout/success") +
+                `?orderId=${internalOrderId || orderId}`;
+              log("Redirecting to " + redirectTo);
+              window.location.href = redirectTo;
+            } else {
+              log("Verification failed");
+            }
+          },
+          modal: {
+            ondismiss: function () {
+              log("checkout dismissed");
+            },
+          },
+        };
+
+        const rzp = new Razorpay(options);
+        rzp.open();
+      });
+
+      // Init
+      loadProducts();
+    </script>
+  </body>
+</html>
