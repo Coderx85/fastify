@@ -37,7 +37,9 @@ class PolarBackendService {
   private getPolarInstance(): Polar {
     const instance = getPolarInstance();
     if (!instance) {
-      throw new Error('Polar SDK is not configured. Please set POLAR_ACCESS_TOKEN environment variable.');
+      throw new Error(
+        "Polar SDK is not configured. Please set POLAR_ACCESS_TOKEN environment variable.",
+      );
     }
     return instance;
   }
@@ -342,7 +344,9 @@ class PolarBackendService {
   }
 
   async getCustomerStateByExternalId(externalId: string) {
-    try {      const polar = this.getPolarInstance();      const state = await polar.customers.getStateExternal({ externalId });
+    try {
+      const polar = this.getPolarInstance();
+      const state = await polar.customers.getStateExternal({ externalId });
       return state;
     } catch (error) {
       console.error("Failed to get customer state by external ID:", error);

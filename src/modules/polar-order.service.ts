@@ -159,7 +159,7 @@ class PolarOrderService {
     try {
       const polarInstance = getPolarInstance();
       if (!polarInstance) {
-        throw new Error('Polar SDK is not configured');
+        throw new Error("Polar SDK is not configured");
       }
       const order = await polarInstance.orders.get({ id: orderId });
       return order;
@@ -176,7 +176,7 @@ class PolarOrderService {
     try {
       const polarInstance = getPolarInstance();
       if (!polarInstance) {
-        throw new Error('Polar SDK is not configured');
+        throw new Error("Polar SDK is not configured");
       }
       const ordersResponse = await polarInstance.orders.list({
         customerId,
@@ -208,7 +208,9 @@ class PolarOrderService {
         return { hasPaid: false };
       }
       // Get customer by external ID
-      const customer = await polarInstance.customers.getExternal({ externalId });
+      const customer = await polarInstance.customers.getExternal({
+        externalId,
+      });
 
       if (!customer) {
         return { hasPaid: false };
@@ -248,9 +250,11 @@ class PolarOrderService {
     try {
       const polarInstance = getPolarInstance();
       if (!polarInstance) {
-        throw new Error('Polar SDK is not configured');
+        throw new Error("Polar SDK is not configured");
       }
-      const product = await polarInstance.products.get({ id: config.POLAR_PRODUCT_ID });
+      const product = await polarInstance.products.get({
+        id: config.POLAR_PRODUCT_ID,
+      });
       return product;
     } catch (error) {
       console.error("Failed to get product:", error);
@@ -265,7 +269,7 @@ class PolarOrderService {
     try {
       const polarInstance = getPolarInstance();
       if (!polarInstance) {
-        throw new Error('Polar SDK is not configured');
+        throw new Error("Polar SDK is not configured");
       }
       const productsResponse = await polarInstance.products.list({
         isRecurring: false, // Only one-time products

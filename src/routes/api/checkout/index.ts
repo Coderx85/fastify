@@ -167,7 +167,16 @@ export default async function checkoutRoutes(fastify: FastifyInstance) {
       try {
         const { userId, email, name } = request.body;
 
-        const checkout = await polar.checkouts.create({
+        const polarInstance = getPolarInstance();
+        if (!polarInstance) {
+          return reply.status(503).send({
+            success: false,
+            error: "Payment service not configured",
+            message: "Polar SDK is not configured",
+          });
+        }
+
+        const checkout = await polarInstance.checkouts.create({
           products: [config.POLAR_PRODUCT_ID],
           externalCustomerId: userId,
           customerEmail: email,
@@ -199,7 +208,15 @@ export default async function checkoutRoutes(fastify: FastifyInstance) {
    */
   app.get("/product", async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const product = await polar.products.get({
+      const polarInstance = getPolarInstance();
+      if (!polarInstance) {
+        return reply.status(503).send({
+          success: false,
+          error: "Payment service not configured",
+          message: "Polar SDK is not configured",
+        });
+      }
+      const product = await polarInstance.products.get({
         id: config.POLAR_PRODUCT_ID,
       });
 

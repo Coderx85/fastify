@@ -96871,7 +96871,9 @@ var PolarBackendService = class {
   getPolarInstance() {
     const instance = getPolarInstance();
     if (!instance) {
-      throw new Error("Polar SDK is not configured. Please set POLAR_ACCESS_TOKEN environment variable.");
+      throw new Error(
+        "Polar SDK is not configured. Please set POLAR_ACCESS_TOKEN environment variable."
+      );
     }
     return instance;
   }
@@ -113910,7 +113912,9 @@ var PolarOrderService = class {
       if (!polarInstance) {
         return { hasPaid: false };
       }
-      const customer = await polarInstance.customers.getExternal({ externalId });
+      const customer = await polarInstance.customers.getExternal({
+        externalId
+      });
       if (!customer) {
         return { hasPaid: false };
       }
@@ -113944,7 +113948,9 @@ var PolarOrderService = class {
       if (!polarInstance) {
         throw new Error("Polar SDK is not configured");
       }
-      const product2 = await polarInstance.products.get({ id: config2.POLAR_PRODUCT_ID });
+      const product2 = await polarInstance.products.get({
+        id: config2.POLAR_PRODUCT_ID
+      });
       return product2;
     } catch (error48) {
       console.error("Failed to get product:", error48);
@@ -114534,7 +114540,15 @@ async function checkoutRoutes2(fastify) {
     async (request, reply) => {
       try {
         const { userId, email: email3, name } = request.body;
-        const checkout = await polar3.checkouts.create({
+        const polarInstance = getPolarInstance3();
+        if (!polarInstance) {
+          return reply.status(503).send({
+            success: false,
+            error: "Payment service not configured",
+            message: "Polar SDK is not configured"
+          });
+        }
+        const checkout = await polarInstance.checkouts.create({
           products: [config2.POLAR_PRODUCT_ID],
           externalCustomerId: userId,
           customerEmail: email3,
@@ -114559,7 +114573,15 @@ async function checkoutRoutes2(fastify) {
   );
   app2.get("/product", async (request, reply) => {
     try {
-      const product2 = await polar3.products.get({
+      const polarInstance = getPolarInstance3();
+      if (!polarInstance) {
+        return reply.status(503).send({
+          success: false,
+          error: "Payment service not configured",
+          message: "Polar SDK is not configured"
+        });
+      }
+      const product2 = await polarInstance.products.get({
         id: config2.POLAR_PRODUCT_ID
       });
       const price = product2.prices?.[0];
