@@ -1,20 +1,22 @@
 import { z } from "zod";
 import {
   productSchema,
+  productResponseSchema,
   productsDataSchema,
   createProductBodySchema,
   updateProductBodySchema,
 } from "@/schema/product.schema";
 import { successResponseSchema } from "@/types/api";
+import { categoryEnumValues } from "@/db/schema";
 
-const curenncyEnum = z.enum(["inr", "usd"]);
+const currencyEnum = z.enum(["inr", "usd"]);
 
 // Reuse product schema (books are products with category = "Books")
-export const bookSchema = productSchema.extend({
-  category: curenncyEnum,
+export const bookSchema = productResponseSchema.extend({
+  currency: currencyEnum,
 });
 export const booksDataSchema = productsDataSchema.extend({
-  currency: curenncyEnum,
+  currency: currencyEnum,
 });
 
 // ============ GET /books ============

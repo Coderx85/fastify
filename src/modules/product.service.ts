@@ -43,7 +43,7 @@ class ProductService {
     return {
       ...product,
       price: product.price / 100, // Convert paises to rupees
-      currency: currencyEnum.enumValues["1"],
+      currency: "inr" as const, // Store prices in Indian Rupees
     };
   }
 

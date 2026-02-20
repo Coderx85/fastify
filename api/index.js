@@ -112688,8 +112688,17 @@ var errorResponseSchema = zod_default.object({
 
 // src/schema/product.schema.ts
 var productSchema = createSelectSchema(product);
+var currencyEnum2 = external_exports2.enum(["inr", "usd"]);
+var productResponseSchema = createSelectSchema(product).extend({
+  price: external_exports2.number()
+  // Allow both int and float for display prices
+});
 var productsDataSchema = external_exports2.object({
-  products: external_exports2.array(productSchema)
+  products: external_exports2.array(
+    productResponseSchema.extend({
+      currency: currencyEnum2
+    })
+  )
 });
 var getProductsSchema = {
   querystring: external_exports2.object({
@@ -112704,7 +112713,9 @@ var getProductByIdSchema = {
     productId: external_exports2.coerce.number().int().positive()
   }),
   response: {
-    200: successResponseSchema(external_exports2.object({ product: productSchema }))
+    200: successResponseSchema(
+      external_exports2.object({ product: productResponseSchema.extend({ currency: currencyEnum2 }) })
+    )
   }
 };
 var createProductBodySchema = external_exports2.object({
@@ -112765,7 +112776,8 @@ var ProductService = class {
       ...product2,
       price: product2.price / 100,
       // Convert paises to rupees
-      currency: currencyEnum.enumValues["1"]
+      currency: "inr"
+      // Store prices in Indian Rupees
     };
   }
   formatProducts(products) {
@@ -114623,9 +114635,12 @@ async function checkoutRoutes2(fastify) {
 }
 
 // src/schema/book.schema.ts
-var bookSchema = productSchema;
+var currencyEnum4 = external_exports2.enum(["inr", "usd"]);
+var bookSchema = productResponseSchema.extend({
+  currency: currencyEnum4
+});
 var booksDataSchema = productsDataSchema.extend({
-  currency: external_exports2.enum(["inr", "usd"])
+  currency: currencyEnum4
 });
 var getBooksSchema = {
   response: {

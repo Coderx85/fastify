@@ -8,10 +8,15 @@ export const productSchema = createSelectSchema(product);
 
 const currencyEnum = z.enum(["inr", "usd"]);
 
+// Product schema for responses - allows float prices from service layer
+export const productResponseSchema = createSelectSchema(product).extend({
+  price: z.number(), // Allow both int and float for display prices
+});
+
 // Products data schema (the data part of success response)
 export const productsDataSchema = z.object({
   products: z.array(
-    productSchema.extend({
+    productResponseSchema.extend({
       currency: currencyEnum,
     }),
   ),
@@ -34,7 +39,7 @@ export const getProductByIdSchema = {
   }),
   response: {
     200: successResponseSchema(
-      z.object({ product: productSchema.extend({ currency: currencyEnum }) }),
+      z.object({ product: productResponseSchema.extend({ currency: currencyEnum }) }),
     ),
   },
 };
