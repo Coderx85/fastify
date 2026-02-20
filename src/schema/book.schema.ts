@@ -7,10 +7,14 @@ import {
 } from "@/schema/product.schema";
 import { successResponseSchema } from "@/types/api";
 
+const curenncyEnum = z.enum(["inr", "usd"]);
+
 // Reuse product schema (books are products with category = "Books")
-export const bookSchema = productSchema;
+export const bookSchema = productSchema.extend({
+  category: curenncyEnum,
+});
 export const booksDataSchema = productsDataSchema.extend({
-  currency: z.enum(["inr", "usd"]),
+  currency: curenncyEnum,
 });
 
 // ============ GET /books ============

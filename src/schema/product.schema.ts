@@ -6,9 +6,15 @@ import { successResponseSchema } from "@/types/api";
 // Base product schema
 export const productSchema = createSelectSchema(product);
 
+const currencyEnum = z.enum(["inr", "usd"]);
+
 // Products data schema (the data part of success response)
 export const productsDataSchema = z.object({
-  products: z.array(productSchema),
+  products: z.array(
+    productSchema.extend({
+      currency: currencyEnum,
+    }),
+  ),
 });
 
 // Get all products with optional category filter
@@ -27,7 +33,9 @@ export const getProductByIdSchema = {
     productId: z.coerce.number().int().positive(),
   }),
   response: {
-    200: successResponseSchema(z.object({ product: productSchema })),
+    200: successResponseSchema(
+      z.object({ product: productSchema.extend({ currency: currencyEnum }) }),
+    ),
   },
 };
 
