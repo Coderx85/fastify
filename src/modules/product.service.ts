@@ -1,6 +1,5 @@
 import { db } from "@/db";
 import {
-  currencyEnum,
   product,
   TCategoryEnumValues,
   TProduct,
