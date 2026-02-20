@@ -112253,12 +112253,20 @@ var db = drizzle(sql2, { schema: schema_exports });
 // src/modules/payment/razorpay.service.ts
 import { STATUS_CODES } from "http";
 var RazorpayService = class {
-  client;
-  constructor() {
-    this.client = new import_razorpay.default({
-      key_id: config2.RAZORPAY_KEY_ID,
-      key_secret: config2.RAZORPAY_KEY_SECRET
-    });
+  client = null;
+  getClient() {
+    if (!config2.RAZORPAY_KEY_ID || !config2.RAZORPAY_KEY_SECRET) {
+      throw new Error(
+        "Razorpay credentials not configured. Please set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET."
+      );
+    }
+    if (!this.client) {
+      this.client = new import_razorpay.default({
+        key_id: config2.RAZORPAY_KEY_ID,
+        key_secret: config2.RAZORPAY_KEY_SECRET
+      });
+    }
+    return this.client;
   }
   async createOrder(orderId, opts) {
     let internalOrderId = orderId;
@@ -112305,7 +112313,7 @@ var RazorpayService = class {
         options.notes[`meta_${k}`] = String(v2);
       });
     }
-    const created = await this.client.orders.create(options);
+    const created = await this.getClient().orders.create(options);
     if (!created || !created.id) {
       throw new Error("Failed to create Razorpay order");
     }

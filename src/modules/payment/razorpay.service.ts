@@ -15,13 +15,21 @@ import { STATUS_CODES } from "http";
  * - markPaymentSucceeded: updates the payment row status to 'succeeded'
  */
 class RazorpayService {
-  client: Razorpay;
+  private client: Razorpay | null = null;
 
-  constructor() {
-    this.client = new Razorpay({
-      key_id: config.RAZORPAY_KEY_ID,
-      key_secret: config.RAZORPAY_KEY_SECRET,
-    });
+  private getClient(): Razorpay {
+    if (!config.RAZORPAY_KEY_ID || !config.RAZORPAY_KEY_SECRET) {
+      throw new Error(
+        "Razorpay credentials not configured. Please set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET.",
+      );
+    }
+    if (!this.client) {
+      this.client = new Razorpay({
+        key_id: config.RAZORPAY_KEY_ID,
+        key_secret: config.RAZORPAY_KEY_SECRET,
+      });
+    }
+    return this.client;
   }
 
   async createOrder(
@@ -101,7 +109,7 @@ class RazorpayService {
       });
     }
 
-    const created = await this.client.orders.create(options);
+    const created = await this.getClient().orders.create(options);
 
     if (!created || !created.id) {
       throw new Error("Failed to create Razorpay order");
