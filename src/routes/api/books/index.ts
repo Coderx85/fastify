@@ -2,7 +2,6 @@ import { FastifyInstance } from "fastify";
 import { ZodTypeProvider } from "fastify-type-provider-zod";
 
 import {
-  getBooksSchema,
   getBookByIdSchema,
   createBookSchema,
   updateBookSchema,

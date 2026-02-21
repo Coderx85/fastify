@@ -19,7 +19,7 @@ export const razorpayCheckOutHandler = {
         customerName,
         successUrl,
         externalCustomerId,
-      } = req.body as any;
+      } = req.body;
 
       // create Razorpay order and attach user/order details in notes
       const { order, internalOrderId } = await razorpayService.createOrder(
@@ -50,18 +50,19 @@ export const razorpayCheckOutHandler = {
         "CREATE_ORDER_FAILED",
         error instanceof Error ? error.message : "Order creation failed",
         reply,
-        error instanceof Error && (error as any).statusCode
-          ? (error as any).statusCode
-          : 500,
       );
     }
   },
 };
 
+type Req = {
+  rawBody?: string;
+};
+
 export const razorpayWebhookHandler = {
   handler: async (req: FastifyRequest, reply: FastifyReply) => {
     const signature = (req.headers["x-razorpay-signature"] || "") as string;
-    const rawBody = (req as any).rawBody || JSON.stringify(req.body || {});
+    const rawBody = (req as Req).rawBody || JSON.stringify(req.body || {});
 
     if (!signature) {
       return sendError("MISSING_SIGNATURE", "Missing signature", reply, 400);
@@ -72,8 +73,19 @@ export const razorpayWebhookHandler = {
       return sendError("INVALID_SIGNATURE", "Invalid signature", reply, 400);
     }
 
+    type RazorpayWebhookPayload = {
+      event: string;
+      payload: {
+        payment?: {
+          entity: {
+            order_id: string;
+          };
+        };
+      };
+    };
+
     // Handle relevant events (payment.captured, payment.failed, etc.)
-    const payload = req.body as any;
+    const payload = req.body as unknown as RazorpayWebhookPayload;
     try {
       const event = payload.event as string;
       if (event === "payment.captured") {
@@ -81,7 +93,7 @@ export const razorpayWebhookHandler = {
         if (paymentEntity?.order_id) {
           try {
             await razorpayService.markPaymentSucceeded(paymentEntity.order_id);
-          } catch (err: unknown) {
+          } catch {
             sendError(
               "MARK_PAYMENT_FAILED",
               "Failed to mark payment succeeded",
@@ -98,8 +110,7 @@ export const razorpayWebhookHandler = {
         reply,
         200,
       );
-    } catch (err: any) {
-      req.log.error("Error handling webhook event:", err);
+    } catch {
       return sendError(
         "WEBHOOK_HANDLING_FAILED",
         "Failed to handle webhook",

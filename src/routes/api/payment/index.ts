@@ -29,7 +29,7 @@ export default async function paymentRoutes(fastify: FastifyInstance) {
 
   fastify.post(
     "/webhook",
-    { config: { rawBody: true } as any },
+    { config: { rawBody: true } as object },
     stripeWebhookHandler,
   );
 }

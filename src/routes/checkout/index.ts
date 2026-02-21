@@ -1,6 +1,5 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
-import { sendError, sendSuccess } from "@/lib/response";
 import { db } from "@/db";
 import { payments } from "@/db/schema";
 import { eq } from "drizzle-orm";

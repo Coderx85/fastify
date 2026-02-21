@@ -1,13 +1,13 @@
-import { FastifyReply, FastifyRequest } from "fastify";
+import type { FastifyReply, FastifyRequest } from "fastify";
 import { sendError, sendSuccess } from "@/lib/response";
-import {
+import type {
   GetBookByIdParams,
   CreateBookBody,
   UpdateBookBody,
   DeleteBookParams,
 } from "@/schema/book.schema";
 import { productService } from "@/modules/product.service";
-import { product } from "@/db/schema";
+import { product, TProduct } from "@/db/schema";
 
 /**
  * GET /books
@@ -122,7 +122,10 @@ export const updateBookHandler = {
         );
       }
 
-      const result = await productService.updateProduct(bookId, product as any);
+      const result = await productService.updateProduct(
+        bookId,
+        product as unknown as Partial<TProduct>,
+      );
 
       if (!result) {
         return sendError(

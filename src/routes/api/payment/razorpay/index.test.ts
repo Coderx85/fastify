@@ -149,11 +149,8 @@ describe("Razorpay Routes", () => {
       payload,
     });
 
-    // If signature verification fails here but passed above, the route may be
-    // using a different rawBody value; log response body for debugging.
     if (response.statusCode !== 200) {
-      // eslint-disable-next-line no-console
-      console.error("Webhook response body:", response.body);
+      // console.error("Webhook response body:", response.body);
     }
 
     expect(response.statusCode).toBe(200);

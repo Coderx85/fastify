@@ -1,4 +1,4 @@
-import { check, z } from "zod";
+import { z } from "zod";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { payments, paymentStatusEnum } from "../db/schema";
 

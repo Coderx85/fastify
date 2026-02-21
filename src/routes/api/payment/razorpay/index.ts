@@ -1,4 +1,4 @@
-import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
+import { FastifyInstance } from "fastify";
 import { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
 import {
@@ -29,7 +29,7 @@ export default async function razorpayRoutes(fastify: FastifyInstance) {
   });
 
   app.get("/webhook", {
-    config: { rawBody: true } as any,
+    config: { rawBody: true } as unknown as object, // Fastify doesn't have built-in raw body support, this is a workaround to access the raw body in the handler
     handler: razorpayWebhookHandler.handler,
   });
 

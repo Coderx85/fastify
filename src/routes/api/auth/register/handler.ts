@@ -48,6 +48,7 @@ export const registerRouteHandler = {
       // Return success with user data
       return sendSuccess(newUser, "User registered successfully", reply, 201);
     } catch (error: unknown) {
+      console.error("Registration error:", error);
       return sendError(
         "Internal server error",
         "INTERNAL_SERVER_ERROR",

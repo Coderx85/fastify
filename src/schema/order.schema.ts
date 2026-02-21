@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { orders, orderProduct, orderStatusEnum } from "@/db/schema";
 import { createSelectSchema } from "drizzle-zod";
-import { errorResponseSchema, successResponseSchema } from "@/types/api";
+import { successResponseSchema } from "@/types/api";
 
 // Base schemas from Drizzle
 export const orderSchema = createSelectSchema(orders);

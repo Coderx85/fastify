@@ -1,13 +1,10 @@
 import { z } from "zod";
 import {
-  productSchema,
   productResponseSchema,
   productsDataSchema,
   createProductBodySchema,
-  updateProductBodySchema,
 } from "@/schema/product.schema";
 import { successResponseSchema } from "@/types/api";
-import { categoryEnumValues } from "@/db/schema";
 
 const currencyEnum = z.enum(["inr", "usd"]);
 

@@ -1,11 +1,11 @@
-// import { db } from "@/db";
-// import { orders, payments } from "@/db/schema";
+import { db } from "@/db";
+import { payments } from "@/db/schema";
 // // import { eq } from "drizzle-orm";
 import { NewPayment } from "@/schema/payment.schema";
 import { polarService } from "./payment/polar.service";
 import { config } from "@/lib/config";
 import { ordersSample } from "@/sample/orders.sample";
-import { addPayment, paymentsSample } from "@/sample/payments.sample";
+import { STATUS_CODES } from "http";
 
 /**
  * Payment Service (Polar.sh Sandbox Implementation)
@@ -68,9 +68,17 @@ class PaymentService {
     }
 
     // Upsert or insert payment record
-    // await db.insert(payments).values(newPayment);
+    const result = await db.insert(payments).values(newPayment);
 
-    addPayment(newPayment);
+    if (!result) {
+      throw new Error("Failed to record payment in database", {
+        cause: {
+          STATUS_CODES: STATUS_CODES["500"],
+        },
+      });
+    }
+
+    // addPayment(newPayment);
 
     return {
       checkoutUrl: checkout.checkoutUrl,

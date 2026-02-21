@@ -26,4 +26,6 @@ export interface IProducts extends TProduct {
 
 export type createPolarPaymentInput = z.infer<typeof createPolarPaymentSchema>;
 
-type CreatePaymentInput = createRazorpayPaymentInput | createPolarPaymentInput;
+export type CreatePaymentInput =
+  | createRazorpayPaymentInput
+  | createPolarPaymentInput;

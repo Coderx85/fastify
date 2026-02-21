@@ -1,11 +1,18 @@
 import Razorpay from "razorpay";
 import crypto from "crypto";
 import { config } from "@/lib/config";
-import { ordersSample } from "@/sample/orders.sample";
 import { db } from "@/db";
 import { orders, payments } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { STATUS_CODES } from "http";
+
+type Options = {
+  amount: number;
+  currency: string;
+  receipt: string;
+  payment_capture: number;
+  notes: Record<string, string>;
+};
 
 /**
  * Razorpay backend wrapper that persists payments to the database.
@@ -87,7 +94,7 @@ class RazorpayService {
         ? orderRecord.totalAmount * 100
         : orderRecord.totalAmount;
 
-    const options: any = {
+    const options: Options = {
       amount: amount,
       currency,
       receipt: `order_${internalOrderId}`,

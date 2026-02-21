@@ -19,7 +19,7 @@ function getPolarInstance(): Polar | null {
 export interface CreateCheckoutParams {
   customerEmail?: string;
   customerName?: string;
-  externalCustomerId?: string; // Your internal user ID
+  externalCustomerId?: string;
   successUrl?: string;
   returnUrl?: string;
   metadata?: Record<string, string | number | boolean>;
@@ -64,7 +64,9 @@ class PolarBackendService {
       };
     } catch (error) {
       console.error("Failed to create checkout:", error);
-      throw new Error("Checkout creation failed");
+      throw new Error("Checkout creation failed", {
+        cause: error,
+      });
     }
   }
 
@@ -215,6 +217,7 @@ class PolarBackendService {
 
   async cancelSubscriptionAtPeriodEnd(subscriptionId: string) {
     try {
+      const polar = this.getPolarInstance();
       const subscription = await polar.subscriptions.update({
         id: subscriptionId,
         subscriptionUpdate: {
@@ -230,6 +233,7 @@ class PolarBackendService {
 
   async listProducts() {
     try {
+      const polar = this.getPolarInstance();
       const productsResponse = await polar.products.list({
         organizationId: config.POLAR_ORGANIZATION_ID,
       });
@@ -258,6 +262,7 @@ class PolarBackendService {
 
   async getCustomerOrders(customerId: string) {
     try {
+      const polar = this.getPolarInstance();
       const ordersResponse = await polar.orders.list({
         customerId,
         organizationId: config.POLAR_ORGANIZATION_ID,
@@ -287,6 +292,7 @@ class PolarBackendService {
 
   async listBenefits() {
     try {
+      const polar = this.getPolarInstance();
       const benefitsResponse = await polar.benefits.list({
         organizationId: config.POLAR_ORGANIZATION_ID,
       });

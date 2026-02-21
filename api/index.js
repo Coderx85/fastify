@@ -14297,7 +14297,7 @@ var require_code2 = __commonJS({
     exports.reportMissingProp = reportMissingProp;
     function hasPropFunc(gen) {
       return gen.scopeValue("func", {
-        // eslint-disable-next-line @typescript-eslint/unbound-method
+         
         ref: Object.prototype.hasOwnProperty,
         code: (0, codegen_1._)`Object.prototype.hasOwnProperty`
       });
@@ -22956,7 +22956,7 @@ var require_quote = __commonJS({
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var rxEscapable = (
-      // eslint-disable-next-line no-control-regex, no-misleading-character-class
+       
       /[\\"\u0000-\u001f\u007f-\u009f\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g
     );
     var escaped = {
@@ -44192,7 +44192,7 @@ var require_get_intrinsic = __commonJS({
       "%encodeURIComponent%": encodeURIComponent,
       "%Error%": $Error,
       "%eval%": eval,
-      // eslint-disable-line no-eval
+       
       "%EvalError%": $EvalError,
       "%Float16Array%": typeof Float16Array === "undefined" ? undefined2 : Float16Array,
       "%Float32Array%": typeof Float32Array === "undefined" ? undefined2 : Float32Array,
@@ -45816,7 +45816,7 @@ var require_follow_redirects = __commonJS({
       for (var event of events) {
         request.on(event, eventHandlers[event]);
       }
-      this._currentUrl = /^\//.test(this._options.path) ? url2.format(this._options) : (
+      this._currentUrl = this._options.path.startsWith('/') ? url2.format(this._options) : (
         // When making a request to a proxy, […]
         // a client MUST send the target URI in absolute-form […].
         this._options.path
@@ -45973,10 +45973,10 @@ var require_follow_redirects = __commonJS({
       return useNativeURL ? new URL2(relative, base) : parseUrl(url2.resolve(base, relative));
     }
     function validateUrl(input) {
-      if (/^\[/.test(input.hostname) && !/^\[[:0-9a-f]+\]$/i.test(input.hostname)) {
+      if (input.hostname.startsWith('[') && !/^\[[:0-9a-f]+\]$/i.test(input.hostname)) {
         throw new InvalidUrlError({ input: input.href || input });
       }
-      if (/^\[/.test(input.host) && !/^\[[:0-9a-f]+\](:\d+)?$/i.test(input.host)) {
+      if (input.host.startsWith('[') && !/^\[[:0-9a-f]+\](:\d+)?$/i.test(input.host)) {
         throw new InvalidUrlError({ input: input.href || input });
       }
       return input;
@@ -46632,7 +46632,7 @@ var require_axios = __commonJS({
             key = removeBrackets(key);
             arr.forEach(function each(el, index2) {
               !(utils$1.isUndefined(el) || el === null) && formData.append(
-                // eslint-disable-next-line no-nested-ternary
+                 
                 indexes === true ? renderKey([key], index2, dots) : indexes === null ? key : key + "[]",
                 convertValue(el)
               );
@@ -46837,7 +46837,7 @@ var require_axios = __commonJS({
     var _navigator = typeof navigator === "object" && navigator || void 0;
     var hasStandardBrowserEnv = hasBrowserEnv && (!_navigator || ["ReactNative", "NativeScript", "NS"].indexOf(_navigator.product) < 0);
     var hasStandardBrowserWebWorkerEnv = (() => {
-      return typeof WorkerGlobalScope !== "undefined" && // eslint-disable-next-line no-undef
+      return typeof WorkerGlobalScope !== "undefined" &&  
       self instanceof WorkerGlobalScope && typeof self.importScripts === "function";
     })();
     var origin = hasBrowserEnv && window.location.href || "http://localhost";
@@ -54127,9 +54127,9 @@ var uuid = (version3) => {
 var uuid4 = /* @__PURE__ */ uuid(4);
 var uuid6 = /* @__PURE__ */ uuid(6);
 var uuid7 = /* @__PURE__ */ uuid(7);
-var email = /^(?!\.)(?!.*\.\.)([A-Za-z0-9_'+\-\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\-]*\.)+[A-Za-z]{2,}$/;
+var email = /^(?!\.)(?!.*\.\.)([A-Za-z0-9_'+\-.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9-]*\.)+[A-Za-z]{2,}$/;
 var html5Email = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
-var rfc5322Email = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+var rfc5322Email = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
 var unicodeEmail = /^[^\s@"]{1,64}@[^\s@]{1,255}$/u;
 var idnEmail = unicodeEmail;
 var browserEmail = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
@@ -54784,7 +54784,7 @@ var Doc = class {
     const F = Function;
     const args = this?.args;
     const content = this?.content ?? [``];
-    const lines = [...content.map((x2) => `  ${x2}`)];
+    const lines = content.map((x2) => `  ${x2}`);
     return new F(...args, lines.join("\n"));
   }
 };
@@ -62377,7 +62377,7 @@ var $ZodRegistry = class {
   get(schema) {
     const p2 = schema._zod.parent;
     if (p2) {
-      const pm = { ...this.get(p2) ?? {} };
+      const pm = { ...this.get(p2) };
       delete pm.id;
       const f = { ...pm, ...this._map.get(schema) };
       return Object.keys(f).length ? f : void 0;
@@ -63779,7 +63779,7 @@ var createToJSONSchemaMethod = (schema, processors = {}) => (params) => {
 };
 var createStandardJSONSchemaMethod = (schema, io2, processors = {}) => (params) => {
   const { libraryOptions, target } = params ?? {};
-  const ctx = initializeContext({ ...libraryOptions ?? {}, target, io: io2, processors });
+  const ctx = initializeContext({ ...libraryOptions, target, io: io2, processors });
   process2(schema, ctx);
   extractDefs(ctx, schema);
   return finalize(ctx, schema);
@@ -63817,12 +63817,10 @@ var stringProcessor = (schema, ctx, _json, _params) => {
     if (regexes.length === 1)
       json4.pattern = regexes[0].source;
     else if (regexes.length > 1) {
-      json4.allOf = [
-        ...regexes.map((regex) => ({
+      json4.allOf = regexes.map((regex) => ({
           ...ctx.target === "draft-07" || ctx.target === "draft-04" || ctx.target === "openapi-3.0" ? { type: "string" } : {},
           pattern: regex.source
-        }))
-      ];
+        }));
     }
   }
 };
@@ -101446,7 +101444,7 @@ var Mi = T((lf, ki) => {
   "use strict";
   p();
   ki.exports = a(function(e) {
-    if (/^\\x/.test(e)) return new d(e.substr(
+    if (e.startsWith('\\x')) return new d(e.substr(
       2
     ), "hex");
     for (var t = "", n = 0; n < e.length; ) if (e[n] !== "\\") t += e[n], ++n;
@@ -102559,7 +102557,7 @@ var Ps = T((xh, Ts) => {
       var t = r.split(" ");
       return { host: t[0], database: t[1] };
     }
-    var e = lc.parse(/ |%[^a-f0-9]|%[a-f0-9][^a-f0-9]/i.test(r) ? encodeURI(r).replace(/\%25(\d\d)/g, "%$1") : r, true), t = e.query;
+    var e = lc.parse(/ |%[^a-f0-9]|%[a-f0-9][^a-f0-9]/i.test(r) ? encodeURI(r).replace(/%25(\d\d)/g, "%$1") : r, true), t = e.query;
     for (var n in t) Array.isArray(t[n]) && (t[n] = t[n][t[n].length - 1]);
     var i = (e.auth || ":").split(":");
     if (t.user = i[0], t.password = i.splice(1).join(

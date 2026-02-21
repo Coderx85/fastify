@@ -2,13 +2,7 @@ import { db } from "@/db";
 import { orders, orderProduct, product } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { TOrder, TOrderProduct } from "@/db/schema";
-import {
-  ordersSample,
-  orderProductsSample,
-  getNextOrderId,
-  getNextOrderProductId,
-} from "@/sample/orders.sample";
-import { productsSample } from "@/sample/products.sample";
+import { ordersSample, orderProductsSample } from "@/sample/orders.sample";
 import {
   CreateOrderBody,
   OrderWithProducts,
@@ -16,7 +10,6 @@ import {
 } from "@/schema/order.schema";
 import { productService } from "./product.service";
 import { IProducts } from "@/types/payment";
-import { STATUS_CODES } from "http";
 
 export class OrderService {
   /**
@@ -30,7 +23,7 @@ export class OrderService {
     // const productIds = data.products.map((p) => p.productId)
 
     let totalAmount = 0;
-    let productDetails: IProducts[] = [];
+    const productDetails: IProducts[] = [];
 
     // Find the product to get its price
     for (const item of data.products) {
@@ -104,7 +97,7 @@ export class OrderService {
       .from(orders)
       .where(eq(orders.userId, userId));
 
-    let result: OrderWithProducts[] = [];
+    const result: OrderWithProducts[] = [];
 
     for (const order of userOrders) {
       const orderProducts = await db
@@ -185,14 +178,9 @@ export class OrderService {
         products: orderProducts,
       };
     } catch (error: unknown) {
-      throw new Error(
-        error instanceof Error ? error.message : "An unknown error occurred",
-        {
-          cause: {
-            STATUS_CODES: (error instanceof Error && error.cause) || 500,
-          },
-        },
-      );
+      throw new Error("An unknown error occurred", {
+        cause: error,
+      });
     }
   }
 

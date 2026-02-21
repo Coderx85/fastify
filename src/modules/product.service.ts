@@ -1,30 +1,9 @@
 import { db } from "@/db";
-import {
-  product,
-  TCategoryEnumValues,
-  TProduct,
-} from "@/db/schema";
+import { product, TCategoryEnumValues, TProduct } from "@/db/schema";
 import { config } from "@/lib/config";
 import { CreateProductBody, UpdateProductBody } from "@/schema/product.schema";
 import { IProducts } from "@/types/payment";
-import { Polar } from "@polar-sh/sdk";
 import { eq } from "drizzle-orm";
-import { STATUS_CODES } from "http";
-
-let polar: Polar | null = null;
-
-function getPolarInstance(): Polar | null {
-  if (!config.POLAR_ACCESS_TOKEN) {
-    return null;
-  }
-  if (!polar) {
-    polar = new Polar({
-      accessToken: config.POLAR_ACCESS_TOKEN,
-      server: "sandbox",
-    });
-  }
-  return polar;
-}
 
 class ProductService {
   /**
@@ -63,10 +42,13 @@ class ProductService {
       const formattedProducts: IProducts[] = this.formatProducts(products);
 
       return formattedProducts;
-    } catch (error: unknown) {
+    } catch (error) {
       console.error("Error fetching products from database:", error);
       throw new Error(
         error instanceof Error ? error.message : "Failed to fetch products",
+        {
+          cause: error,
+        },
       );
     }
   }
@@ -86,12 +68,10 @@ class ProductService {
 
       const formattedProducts = this.formatProducts(products);
       return formattedProducts;
-    } catch (error: unknown) {
-      throw new Error(
-        error instanceof Error
-          ? error.message
-          : "Failed to fetch products by category",
-      );
+    } catch (error) {
+      throw new Error("Failed to fetch products by category", {
+        cause: error,
+      });
     }
   }
 
@@ -108,26 +88,15 @@ class ProductService {
         .where(eq(product.id, id));
 
       if (!products) {
-        throw new Error(`Product with ID ${id} not found`, {
-          cause: {
-            STATUS_CODES: STATUS_CODES["404"],
-          },
-        });
+        throw new Error(`Product with ID ${id} not found`);
       }
 
       const formattedProduct = this.formatProduct(products);
       return formattedProduct;
-    } catch (error: unknown) {
-      throw new Error(
-        error instanceof Error
-          ? error.message
-          : "Failed to fetch product by ID",
-        {
-          cause: {
-            STATUS_CODES: STATUS_CODES["500"],
-          },
-        },
-      );
+    } catch (error) {
+      throw new Error("Failed to fetch product by ID", {
+        cause: error,
+      });
     }
   }
 
@@ -151,7 +120,9 @@ class ProductService {
 
       return created;
     } catch (error) {
-      throw error;
+      throw new Error("Failed to create product", {
+        cause: error,
+      });
     }
   }
 
@@ -166,11 +137,7 @@ class ProductService {
       const existingProduct = await this.getProductById(id);
 
       if (!existingProduct) {
-        throw new Error(`Product with ID ${id} not found`, {
-          cause: {
-            STATUS_CODES: STATUS_CODES["404"],
-          },
-        });
+        throw new Error(`Product with ID ${id} not found`);
       }
 
       const updatedProduct = db
@@ -180,10 +147,10 @@ class ProductService {
         .returning();
 
       return updatedProduct;
-    } catch (error: unknown) {
-      throw new Error(
-        error instanceof Error ? error.message : "Failed to update product",
-      );
+    } catch (error) {
+      throw new Error("Failed to update product", {
+        cause: error,
+      });
     }
   }
 
@@ -196,10 +163,10 @@ class ProductService {
     try {
       await db.delete(product).where(eq(product.id, id));
       return { deleted: true, productId: id };
-    } catch (error: unknown) {
-      throw new Error(
-        error instanceof Error ? error.message : "Failed to delete product",
-      );
+    } catch (error) {
+      throw new Error("Failed to delete product", {
+        cause: error,
+      });
     }
   }
 }

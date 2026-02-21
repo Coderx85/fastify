@@ -155,7 +155,7 @@ export default async function polarRoutes(fastify: FastifyInstance) {
     const hasOrgId = !!config.POLAR_ORGANIZATION_ID;
     const hasProductId = !!config.POLAR_PRODUCT_ID;
 
-    let apiStatus = "unknown";
+    let apiStatus: "connected" | "error" | "not_configured";
     let apiError: string | null = null;
 
     if (hasToken) {

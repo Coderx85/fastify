@@ -4,7 +4,6 @@ import { config } from "@/lib/config";
 import { z } from "zod";
 import { ZodTypeProvider } from "fastify-type-provider-zod";
 import { sendError, sendSuccess } from "@/lib";
-import { db } from "@/db";
 
 // Initialize Polar SDK only when credentials are available
 let polar: Polar | null = null;

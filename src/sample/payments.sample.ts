@@ -1,4 +1,4 @@
-import { TPayment } from "@/schema/payment.schema";
+import { TPayment } from "@/db/schema";
 
 // Sample payments data
 export const paymentsSample: TPayment[] = [
@@ -10,6 +10,7 @@ export const paymentsSample: TPayment[] = [
     status: "pending",
     paymentMethod: "polar",
     createdAt: new Date("2026-01-15T10:05:00Z"),
+    updatedAt: new Date("2026-01-15T10:05:00Z"),
   },
   {
     id: "checkout_2",
@@ -19,6 +20,7 @@ export const paymentsSample: TPayment[] = [
     status: "succeeded",
     paymentMethod: "polar",
     createdAt: new Date("2026-01-10T14:35:00Z"),
+    updatedAt: new Date("2026-01-10T14:40:00Z"),
   },
 ];
 

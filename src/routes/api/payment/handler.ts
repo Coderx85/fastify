@@ -5,17 +5,23 @@ import { razorpayService } from "@/modules/payment/razorpay.service";
 import { config } from "@/lib/config";
 import { sendError, sendSuccess } from "@/lib";
 
-const createPaymentIntentRequestSchema = z.object({
+type CreatePaymentIntentRequest = {
+  orderId: number;
+  provider?: "polar" | "razorpay";
+  customerEmail?: string;
+  customerName?: string;
+  successUrl?: string;
+  externalCustomerId?: string;
+};
+
+export const createPaymentIntentRequestSchema = z.object({
   orderId: z.number(),
   provider: z.enum(["polar", "razorpay"]).optional(),
-  customerEmail: z
-    .string()
-    .regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)
-    .optional(),
+  customerEmail: z.string().email().optional(),
   customerName: z.string().optional(),
   successUrl: z.string().url().optional(),
   externalCustomerId: z.string().optional(),
-});
+}) satisfies z.ZodType<CreatePaymentIntentRequest>;
 
 /**
  * Handler for creating a payment session for multiple providers.
@@ -24,7 +30,7 @@ const createPaymentIntentRequestSchema = z.object({
  */
 export async function createPaymentIntentHandler(
   request: FastifyRequest<{
-    Body: z.infer<typeof createPaymentIntentRequestSchema>;
+    Body: CreatePaymentIntentRequest;
   }>,
   reply: FastifyReply,
 ) {
