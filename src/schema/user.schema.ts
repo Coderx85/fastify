@@ -16,5 +16,28 @@ export const getUserSchema = {
 };
 export type UserIdParams = z.infer<typeof getUserSchema.params>;
 
+export const updateUserSchema = {
+  params: z.object({
+    id: z.string().transform((val) => parseInt(val, 10)),
+  }),
+  body: z.object({
+    name: z.string().min(2).optional(),
+    email: z.string().email().optional(),
+  }),
+};
+export type UpdateUserBody = z.infer<typeof updateUserSchema.body>;
+
+export const deleteUserSchema = {
+  params: z.object({
+    id: z.string().transform((val) => parseInt(val, 10)),
+  }),
+};
+
+export const getUserByEmailSchema = {
+  querystring: z.object({
+    email: z.string().email(),
+  }),
+};
+
 // Backward compatibility
 export const userIdSchema = getUserSchema.params;

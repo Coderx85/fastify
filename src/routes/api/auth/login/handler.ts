@@ -6,6 +6,7 @@ import { users } from "@/db/schema";
 import { sendError, sendSuccess } from "@/lib/response";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
+import { generateAuthToken } from "@/lib/token";
 
 export const loginRouteHandler = {
   handler: async (
@@ -32,8 +33,9 @@ export const loginRouteHandler = {
         email: user.email,
         name: user.name,
       },
+      token: generateAuthToken({ id: user.id, email: user.email }),
     };
 
-    sendSuccess(result.user, "Login successful", reply, 200);
+    sendSuccess(result, "Login successful", reply, 200);
   },
 };

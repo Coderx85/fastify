@@ -1,4 +1,8 @@
 import { randomBytes } from "crypto";
+import jwt from "jsonwebtoken";
+import { config } from "./config";
+
+// --- Password Reset Token ---
 
 type TPasswordResetToken = { userId: number; expiresAt: Date };
 const passwordResetTokens = new Map<string, TPasswordResetToken>();
@@ -6,7 +10,7 @@ const passwordResetTokens = new Map<string, TPasswordResetToken>();
 const TOKEN_EXPIRATION_MINUTES = 60;
 
 /**
- * Generates a secure random token, stores it, and returns it.
+ * Generates a secure random token for password reset, stores it, and returns it.
  * @param userId - The ID of the user to associate with the token.
  * @returns The generated token.
  */
@@ -46,4 +50,29 @@ export function validateResetToken(token: string): number | null {
  */
 export function deleteResetToken(token: string): void {
   passwordResetTokens.delete(token);
+}
+
+
+// --- JWT Authentication Token ---
+
+/**
+ * Generates a JWT authentication token.
+ * @param payload - The data to include in the token.
+ * @returns The generated JWT.
+ */
+export function generateAuthToken(payload: string | object | Buffer): string {
+  return jwt.sign(payload, config.JWT_SECRET, { expiresIn: "7d" });
+}
+
+/**
+ * Verifies a JWT authentication token.
+ * @param token - The token to verify.
+ * @returns The decoded token payload, or null if invalid.
+ */
+export function verifyAuthToken(token: string): string | jwt.JwtPayload | null {
+  try {
+    return jwt.verify(token, config.JWT_SECRET);
+  } catch (error) {
+    return null;
+  }
 }
