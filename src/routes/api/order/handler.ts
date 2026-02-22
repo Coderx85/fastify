@@ -26,7 +26,37 @@ export const createOrderHandler = {
     reply: FastifyReply,
   ) => {
     try {
-      const orderData = request.body;
+      // If the client did not provide a userId, attempt to extract it from
+      // the Bearer token.  This keeps the API usable from authenticated
+      // clients without forcing them to send their own user ID (which could
+      // otherwise be spoofed).
+      const orderData = { ...request.body } as CreateOrderBody;
+
+      if (!orderData.userId) {
+        const authHeader = request.headers.authorization;
+        if (authHeader && authHeader.startsWith("Bearer ")) {
+          const token = authHeader.slice(7);
+          const { verifyAuthToken } = await import("@/lib/token");
+          const payload = verifyAuthToken(token);
+          if (
+            payload &&
+            typeof payload === "object" &&
+            "id" in payload &&
+            typeof (payload as any).id === "number"
+          ) {
+            orderData.userId = (payload as any).id;
+          }
+        }
+      }
+
+      if (!orderData.userId) {
+        return sendError(
+          "Unauthorized: missing user ID",
+          "UNAUTHORIZED",
+          reply,
+          401,
+        );
+      }
 
       // Create the order
       const result = await orderService.createOrder(orderData);

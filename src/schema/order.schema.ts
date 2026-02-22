@@ -18,7 +18,9 @@ export const orderProductInputSchema = z.object({
 
 // Create order request body
 export const createOrderBodySchema = z.object({
-  userId: z.number().int().positive(),
+  // userId is no longer required in the request payload; it will be
+  // injected server‑side from the authentication token when available.
+  userId: z.number().int().positive().optional(),
   shippingAddress: z.string().optional(),
   paymentMethod: z.string().max(50).optional(),
   notes: z.string().optional(),

@@ -18,6 +18,14 @@ export class OrderService {
    * @returns Created order with associated products
    */
   async createOrder(data: CreateOrderBody): Promise<OrderWithProducts> {
+    // Ensure we have a userId before proceeding – the handler is responsible
+    // for populating this from the auth token.  At compile time the type is
+    // optional, so we guard and then assert to satisfy the Drizzle insert
+    // signature.
+    if (typeof data.userId !== "number") {
+      throw new Error("userId is required to create order");
+    }
+
     // Get product prices to calculate total amount
 
     // const productIds = data.products.map((p) => p.productId)
@@ -36,7 +44,7 @@ export class OrderService {
     const [createdOrder] = await db
       .insert(orders)
       .values({
-        userId: data.userId,
+        userId: data.userId!,
         totalAmount, // store total amount in Paises
         status: "processing",
         shippingAddress: data.shippingAddress,
