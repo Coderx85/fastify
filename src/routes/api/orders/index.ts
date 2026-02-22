@@ -4,6 +4,13 @@ import { z } from "zod";
 import { orderService } from "@/modules/polar-order.service";
 import { sendError, sendSuccess } from "@/lib/response";
 
+// pull in shared schemas and handlers from the main order module so we can
+// expose the same create/lookup functionality under the `/api/orders` prefix.
+import {
+  createOrderSchema,
+} from "@/schema/order.schema";
+import { createOrderHandler } from "../order/handler";
+
 const ExternalIdParamSchema = z.object({
   externalId: z.string(),
 });
@@ -108,6 +115,19 @@ export default async function ordersRoutes(fastify: FastifyInstance) {
       }
     },
   );
+
+  /**
+   * POST /api/orders
+   *
+   * Mirror the main order-creation endpoint so that callers targeting the
+   * plural `/orders` prefix (used by the frontend and documentation) will
+   * succeed.  We simply delegate to the existing handler and schema from the
+   * singular `order` routes.
+   */
+  app.post("/", {
+    schema: createOrderSchema,
+    handler: createOrderHandler.handler,
+  });
 
   /**
    * GET /api/orders/product
