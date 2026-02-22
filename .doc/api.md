@@ -440,13 +440,13 @@ Manages all operations related to orders and their contents.
 
 #### Request Body
 
-| Field             | Type             | Required | Description                                   |
-| :---------------- | :--------------- | :------- | :-------------------------------------------- |
-| `userId`          | `number`         | Yes (or omitted)      | The ID of the user placing the order. If not provided the server will extract it from the Bearer token. |
-| `products`        | `Array<Product>` | Yes      | An array of products to include in the order. |
-| `shippingAddress` | `string`         | No       | The shipping address for the order.           |
-| `paymentMethod`   | `string`         | No       | The method of payment for the order.          |
-| `notes`           | `string`         | No       | Any additional notes for the order.           |
+| Field             | Type             | Required         | Description                                                                                             |
+| :---------------- | :--------------- | :--------------- | :------------------------------------------------------------------------------------------------------ |
+| `userId`          | `number`         | Yes (or omitted) | The ID of the user placing the order. If not provided the server will extract it from the Bearer token. |
+| `products`        | `Array<Product>` | Yes              | An array of products to include in the order.                                                           |
+| `shippingAddress` | `string`         | No               | The shipping address for the order.                                                                     |
+| `paymentMethod`   | `string`         | No               | The method of payment for the order.                                                                    |
+| `notes`           | `string`         | No               | Any additional notes for the order.                                                                     |
 
 **Product Object:**
 | Field | Type | Required | Description |
