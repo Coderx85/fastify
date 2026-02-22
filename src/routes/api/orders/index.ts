@@ -6,9 +6,7 @@ import { sendError, sendSuccess } from "@/lib/response";
 
 // pull in shared schemas and handlers from the main order module so we can
 // expose the same create/lookup functionality under the `/api/orders` prefix.
-import {
-  createOrderSchema,
-} from "@/schema/order.schema";
+import { createOrderSchema } from "@/schema/order.schema";
 import { createOrderHandler } from "../order/handler";
 
 const ExternalIdParamSchema = z.object({
