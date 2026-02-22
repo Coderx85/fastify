@@ -21,4 +21,7 @@ export const config = {
   SUCCESS_URL:
     process.env.SUCCESS_URL || "http://localhost:3000/checkout/success",
   RETURN_URL: process.env.RETURN_URL || "http://localhost:3000",
+
+  // JWT Configuration - CHANGE THIS IN PRODUCTION
+  JWT_SECRET: process.env.JWT_SECRET || "your-super-secret-and-long-jwt-secret",
 };

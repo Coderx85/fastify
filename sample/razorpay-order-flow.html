@@ -92,7 +92,7 @@
 
       async function loadProducts() {
         try {
-          const r = await fetch("http://localhost:4000/api/products");
+          const r = await fetch("https://fastifyx85.vercel.app/api/products");
           const json = await r.json();
           const products = json?.data?.products ?? json?.products ?? [];
           const sel = document.getElementById("productSelect");
@@ -115,7 +115,7 @@
         );
         const qty = Number(document.getElementById("qty").value || 1);
         try {
-          const res = await fetch("http://localhost:4000/api/order", {
+          const res = await fetch("https://fastifyx85.vercel.app/api/order", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -144,17 +144,20 @@
       async function createPaymentIntent(orderId) {
         const customerName = document.getElementById("customerName").value;
         const customerEmail = document.getElementById("customerEmail").value;
-        const res = await fetch("http://localhost:4000/api/payment/intent", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            orderId,
-            provider: "razorpay",
-            customerName,
-            customerEmail,
-            successUrl: "/checkout/success",
-          }),
-        });
+        const res = await fetch(
+          "https://fastifyx85.vercel.app/api/payment/intent",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              orderId,
+              provider: "razorpay",
+              customerName,
+              customerEmail,
+              successUrl: "/checkout/success",
+            }),
+          },
+        );
         const body = await res.json();
         // unwrap envelope if present
         return { status: res.status, data: body?.data ?? body };
@@ -162,7 +165,7 @@
 
       async function verifyPayment(payload) {
         const res = await fetch(
-          "http://localhost:4000/api/payment/razorpay/verify",
+          "https://fastifyx85.vercel.app/api/payment/razorpay/verify",
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
