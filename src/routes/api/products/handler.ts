@@ -9,6 +9,8 @@ import {
   DeleteProductParams,
 } from "@/schema/product.schema";
 import { productService } from "@/modules/product.service";
+import { TResponse } from "@/types/api";
+import { STATUS_CODES } from "http";
 
 /**
  * Handler for getting all products (with optional category filter)
@@ -98,7 +100,7 @@ export const getProductByIdHandler = {
 
 /**
  * Handler for creating a new product
- * POST /products
+ *@method POST /products
  */
 export const createProductHandler = {
   handler: async (
@@ -107,7 +109,6 @@ export const createProductHandler = {
   ) => {
     try {
       const result = await productService.createProduct(request.body);
-
       sendSuccess(
         { product: result },
         "Product created successfully",
@@ -128,7 +129,7 @@ export const createProductHandler = {
 
 /**
  * Handler for updating a product
- * PUT /products/:productId
+ *@method PUT /products/:productId
  */
 export const updateProductHandler = {
   handler: async (
@@ -174,7 +175,7 @@ export const updateProductHandler = {
 
 /**
  * Handler for deleting a product
- * DELETE /products/:productId
+ *@method DELETE /products/:productId
  */
 export const deleteProductHandler = {
   handler: async (
@@ -185,17 +186,18 @@ export const deleteProductHandler = {
       const { productId } = request.params;
       const result = await productService.deleteProduct(productId);
 
-      if (!result.deleted) {
+      sendSuccess(result, "Product deleted successfully", reply, 200);
+    } catch (error: any) {
+      if (error.cause && error.cause.code === STATUS_CODES[404]) {
+        // Handle case where product was not found for deletion
         return sendError(
-          `Product with ID ${productId} not found`,
+          `Product with ID ${request.params.productId} not found`,
           "NOT_FOUND",
           reply,
           404,
         );
       }
 
-      sendSuccess(result, "Product deleted successfully", reply, 200);
-    } catch (error) {
       request.log.error(error);
       return sendError(
         "Failed to delete product",

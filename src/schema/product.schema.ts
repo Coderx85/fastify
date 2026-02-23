@@ -39,7 +39,9 @@ export const getProductByIdSchema = {
   }),
   response: {
     200: successResponseSchema(
-      z.object({ product: productResponseSchema.extend({ currency: currencyEnum }) }),
+      z.object({
+        product: productResponseSchema.extend({ currency: currencyEnum }),
+      }),
     ),
   },
 };

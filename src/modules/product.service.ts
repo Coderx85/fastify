@@ -4,6 +4,7 @@ import { config } from "@/lib/config";
 import { CreateProductBody, UpdateProductBody } from "@/schema/product.schema";
 import { IProducts } from "@/types/payment";
 import { eq } from "drizzle-orm";
+import { STATUS_CODES } from "http";
 
 class ProductService {
   /**
@@ -161,9 +162,23 @@ class ProductService {
    */
   async deleteProduct(id: number) {
     try {
-      await db.delete(product).where(eq(product.id, id));
+      const res = await db.delete(product).where(eq(product.id, id));
+      if (res.rowCount === 0) {
+        throw new Error(`Product with ID ${id} not found`, {
+          cause: {
+            code: 404,
+          },
+        });
+      }
       return { deleted: true, productId: id };
-    } catch (error) {
+    } catch (error: any) {
+      if (error.cause && error.cause.code === 404) {
+        throw new Error(`Product with ID ${id} not found`, {
+          cause: {
+            code: STATUS_CODES[404],
+          },
+        });
+      }
       throw new Error("Failed to delete product", {
         cause: error,
       });
