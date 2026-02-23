@@ -117,8 +117,8 @@ class ProductService {
           category: data.category,
         })
         .returning();
-
-      return created;
+      const formattedProduct = this.formatProduct(created);
+      return formattedProduct;
     } catch (error) {
       throw new Error("Failed to create product", {
         cause: error,
