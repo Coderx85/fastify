@@ -1,9 +1,10 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import { paymentService } from "@/modules/payment.service";
-import { z } from "zod";
+import { custom, z } from "zod";
 import { razorpayService } from "@/modules/payment/razorpay.service";
 import { config } from "@/lib/config";
 import { sendError, sendSuccess } from "@/lib";
+import { addressInsertSchema } from "@/db/schema";
 
 type CreatePaymentIntentRequest = {
   orderId: number;
@@ -14,14 +15,16 @@ type CreatePaymentIntentRequest = {
   externalCustomerId?: string;
 };
 
-export const createPaymentIntentRequestSchema = z.object({
-  orderId: z.number(),
-  provider: z.enum(["polar", "razorpay"]).optional(),
-  customerEmail: z.string().email().optional(),
-  customerName: z.string().optional(),
-  successUrl: z.string().url().optional(),
-  externalCustomerId: z.string().optional(),
-}) satisfies z.ZodType<CreatePaymentIntentRequest>;
+export const createPaymentIntentRequestSchema = z
+  .object({
+    orderId: z.number(),
+    provider: z.enum(["polar", "razorpay"]).optional(),
+    customerEmail: z.string().email().optional(),
+    customerName: z.string().optional(),
+    successUrl: z.string().url().optional(),
+    externalCustomerId: z.string().optional(),
+  })
+  .extend(addressInsertSchema) satisfies z.ZodType<CreatePaymentIntentRequest>;
 
 /**
  * Handler for creating a payment session for multiple providers.
@@ -47,6 +50,10 @@ export async function createPaymentIntentHandler(
           customerName,
           successUrl,
           externalCustomerId,
+          metadata: {
+            orderId: orderId.toString(),
+            environment: "production",
+          },
         },
       );
 
@@ -86,7 +93,12 @@ export async function createPaymentIntentHandler(
   }
 }
 
-// Stripe webhook handler is deprecated
+/**
+ *
+ * @param reply
+ * @param request
+ * @returns
+ */
 export async function stripeWebhookHandler(
   request: FastifyRequest,
   reply: FastifyReply,
@@ -98,3 +110,37 @@ export async function stripeWebhookHandler(
     410,
   );
 }
+
+// Schema validation for Razorpay checkout intent is now handled within the createOrder method of razorpayService, so these handlers can be removed or repurposed if needed.
+export const CreateRazorpayCheckoutIntentSchema = {
+  body: z.object({
+    orderId: z.number(),
+    customerEmail: z.string().email(),
+    customerName: z.string(),
+    successUrl: z.string().url(),
+    externalCustomerId: z.string(),
+  }),
+  response: {
+    200: z.object({
+      order: z.any(),
+      keyId: z.string(),
+      internalOrderId: z.string(),
+      successUrl: z.string(),
+    }),
+  },
+};
+
+export type CreateRazorpayCheckoutIntentSchemaType = z.infer<
+  typeof CreateRazorpayCheckoutIntentSchema
+>;
+
+export async function createRazorpayCheckoutIntentHandler(
+  request: FastifyRequest<{
+    Body: CreateRazorpayCheckoutIntentSchemaType;
+  }>,
+  reply: FastifyReply,
+) {
+  // This is now handled within the createOrder method of razorpayService, so this function can be removed or repurposed if needed.
+}
+
+export async function createPolarCheckoutIntentHandler() {}

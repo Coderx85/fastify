@@ -17,9 +17,9 @@ function getPolarInstance(): Polar | null {
 }
 
 export interface CreateCheckoutParams {
-  customerEmail?: string;
-  customerName?: string;
-  externalCustomerId?: string;
+  customerEmail: string;
+  customerName: string;
+  externalCustomerId: string;
   successUrl?: string;
   returnUrl?: string;
   metadata?: Record<string, string | number | boolean>;

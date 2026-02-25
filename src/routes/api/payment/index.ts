@@ -3,6 +3,7 @@ import { ZodTypeProvider } from "fastify-type-provider-zod";
 import { createPaymentIntentHandler, stripeWebhookHandler } from "./handler";
 import { z } from "zod";
 import { createRazorpayCheckoutIntentSchema } from "@/schema/razorpay.schema";
+import { CreateRazorpayCheckoutIntentSchema as RazorpaySchema } from "./handler";
 
 export const createPaymentIntentSchema = z.object({
   checkoutUrl: z.string().optional(),
@@ -32,4 +33,17 @@ export default async function paymentRoutes(fastify: FastifyInstance) {
     { config: { rawBody: true } as object },
     stripeWebhookHandler,
   );
+
+  fastifyWithZod.post("/razorpay", {
+    schema: {
+      body: RazorpaySchema.body,
+      response: {
+        200: RazorpaySchema.response[200],
+      },
+      description:
+        "Create a Razorpay order and returns order details + keyId for client-side checkout.",
+      tags: ["Payment", "Checkout"],
+    },
+    handler: createPaymentIntentHandler,
+  });
 }

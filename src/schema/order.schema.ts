@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { orders, orderProduct, orderStatusEnum } from "@/db/schema";
+import {
+  orders,
+  orderProduct,
+  orderStatusEnum,
+  paymentMethodEnum,
+} from "@/db/schema";
 import { createSelectSchema } from "drizzle-zod";
 import { successResponseSchema } from "@/types/api";
 
@@ -22,7 +27,7 @@ export const createOrderBodySchema = z.object({
   // injected server‑side from the authentication token when available.
   userId: z.number().int().positive().optional(),
   shippingAddress: z.string().optional(),
-  paymentMethod: z.string().max(50).optional(),
+  paymentMethod: z.enum(paymentMethodEnum.enumValues),
   notes: z.string().optional(),
   products: z
     .array(orderProductInputSchema)

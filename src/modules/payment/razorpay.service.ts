@@ -40,13 +40,21 @@ class RazorpayService {
   }
 
   async createOrder(
-    orderId?: number,
+    orderId: number,
     opts?: {
       customerEmail?: string;
       customerName?: string;
       externalCustomerId?: string;
       successUrl?: string;
       metadata?: Record<string, string | number | boolean>;
+    },
+    address?: {
+      line1: string;
+      line2?: string;
+      city: string;
+      state: string;
+      postalCode: string;
+      country: string;
     },
   ) {
     // If an internal order exists, use it; otherwise create a lightweight order row
@@ -67,13 +75,15 @@ class RazorpayService {
       const [createdOrder] = await db
         .insert(orders)
         .values({
+          totalAmountCurrency: "usd",
           userId: opts?.externalCustomerId
             ? Number(opts.externalCustomerId) || 1
             : 1,
           totalAmount: 300,
           status: "processing",
-          shippingAddress: "",
-          paymentMethod: "credit_card",
+          billingAddressId: 1, // Placeholder, should be updated to use actual address ID
+          shippingAddressId: 1, // Placeholder, should be updated to use actual address ID
+          paymentMethod: "razorpay",
           createdAt: new Date(),
           updatedAt: new Date(),
         })
@@ -179,6 +189,16 @@ class RazorpayService {
       console.error("Failed to mark payment succeeded:", err);
       throw err;
     }
+  }
+
+  async initialize() {
+    // This method can be used to perform any startup initialization if needed
+
+    const razorpayClient = this.getClient(); // Ensure Razorpay client is initialized.
+
+    razorpayClient.payments;
+
+    console.log("RazorpayService initialized");
   }
 }
 

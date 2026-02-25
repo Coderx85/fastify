@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import { payments, paymentStatusEnum } from "../db/schema";
+import { addressInsertSchema, payments, paymentStatusEnum } from "../db/schema";
 
 // predefined payment status values and initial status
 const paymentStatusValues = paymentStatusEnum.enumValues;
@@ -18,16 +18,18 @@ const paymentSchema = createSelectSchema(payments).omit({
   updatedAt: true,
 });
 
-export const createRazorpayCheckoutSchema = z.object({
-  orderId: z.number(),
-  // Optional customer info to pre-fill / attach to the Razorpay order
-  customerEmail: z.string().email().optional(),
-  customerName: z.string().optional(),
-  // Optional redirect/confirmation URL (your frontend)
-  successUrl: z.string().url().optional(),
-  // Optional external customer id (your internal user id)
-  externalCustomerId: z.string().optional(),
-});
+export const createRazorpayCheckoutSchema = z
+  .object({
+    orderId: z.number(),
+    // Optional customer info to pre-fill / attach to the Razorpay order
+    customerEmail: z.string().email().optional(),
+    customerName: z.string().optional(),
+    // Optional redirect/confirmation URL (your frontend)
+    successUrl: z.string().url().optional(),
+    // Optional external customer id (your internal user id)
+    externalCustomerId: z.string().optional(),
+  })
+  .extend(addressInsertSchema);
 
 // For Polar, we allow currency and paymentMethod to be set to their defaults, but they can be overridden if needed
 
@@ -53,3 +55,7 @@ export const createPolarPaymentSchema = polarPaymentSchema
       message: "Payment method must be polar and currency must be usd",
     },
   );
+
+///////////////////////////////////////////////////////////////////
+// ADDRESS SCHEMA - can be used for both Polar and Razorpay orders
+///////////////////////////////////////////////////////////////////

@@ -3,19 +3,13 @@ import { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
 import { polarService } from "@/modules/payment/polar.service";
 import { sendError, sendSuccess } from "@/lib/response";
-
-// Zod schemas for request validation
-const CreateCheckoutSchema = z.object({
-  customerEmail: z.string().email().optional(),
-  customerName: z.string().optional(),
-  externalCustomerId: z.string().optional(),
-  successUrl: z.string().url().optional(),
-  returnUrl: z.string().url().optional(),
-});
-
-const ExternalIdParamSchema = z.object({
-  externalId: z.string(),
-});
+import {
+  CreateCheckoutSchema,
+  ExternalIdParamSchema,
+} from "@/schema/polar.schema";
+import { db } from "@/db";
+import { users } from "@/db/schema";
+import { eq } from "drizzle-orm";
 
 export default async function polarRoutes(fastify: FastifyInstance) {
   const app = fastify.withTypeProvider<ZodTypeProvider>();
@@ -34,7 +28,37 @@ export default async function polarRoutes(fastify: FastifyInstance) {
       reply: FastifyReply,
     ) => {
       try {
-        const checkout = await polarService.createCheckout(req.body);
+        const { orderId, userId } = req.body;
+
+        const [dbUser] = await db
+          .select()
+          .from(users)
+          .where(eq(users.id, parseInt(userId)))
+          .execute();
+
+        if (!dbUser) {
+          return sendError("User not found", "USER_NOT_FOUND", reply, 404);
+        }
+
+        const checkout = await polarService.createCheckout({
+          customerName: dbUser.name,
+          customerEmail: dbUser.email,
+          externalCustomerId: dbUser.id.toString(),
+          metadata: {
+            product: "Your Product Name",
+            userId: dbUser.id,
+            orderId: `${orderId}`,
+          },
+        });
+
+        if (!checkout) {
+          return sendError(
+            "Failed to create checkout",
+            "CHECKOUT_CREATION_FAILED",
+            reply,
+            500,
+          );
+        }
 
         return sendSuccess(
           { checkout },
