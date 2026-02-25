@@ -15,6 +15,13 @@
       "when": 1771475914238,
       "tag": "0001_strong_pyro",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1772043238860,
+      "tag": "0002_worthless_bishop",
+      "breakpoints": true
     }
   ]
 }

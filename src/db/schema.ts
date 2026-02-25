@@ -7,6 +7,8 @@ import {
   timestamp,
   pgEnum,
   index,
+  boolean,
+  numeric,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 
@@ -45,14 +47,37 @@ export const paymentMethodEnum = pgEnum("payment_method", [
 ]);
 
 export const currencyEnum = pgEnum("currency", ["usd", "inr"]);
+export const addressTypeEnum = pgEnum("address_type", ["shipping", "billing"]);
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
   email: varchar("email", { length: 255 }).notNull().unique(),
   password: varchar("password", { length: 255 }).notNull(),
+  contact: numeric("contact", { precision: 10, scale: 0 }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const addresses = pgTable(
+  "addresses",
+  {
+    id: serial("id").primaryKey(),
+    streetAddress1: varchar("street_address", { length: 255 }).notNull(),
+    streetAddress2: varchar("street_address2", { length: 255 }),
+    city: varchar("city", { length: 100 }),
+    state: varchar("state", { length: 100 }),
+    postalCode: varchar("postal_code", { length: 20 }).notNull(),
+    country: varchar("country", { length: 100 }).notNull(),
+    addressType: addressTypeEnum("address_type").notNull(),
+    isDefault: boolean("is_default").notNull().default(false),
+    userId: integer("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [index("addresses_user_id_idx").on(table.userId)],
+);
 
 export const payments = pgTable(
   "payments",
@@ -73,6 +98,7 @@ export const payments = pgTable(
     index("payments_status_idx").on(table.status),
   ],
 );
+
 export const product = pgTable(
   "product",
   {
@@ -97,9 +123,17 @@ export const orders = pgTable(
       .references(() => users.id, { onDelete: "cascade" })
       .notNull(),
     totalAmount: integer("total_amount").notNull().default(0),
+    totalAmountCurrency: currencyEnum("total_amount_currency").notNull(), // New column
     status: orderStatusEnum("status").notNull().default("processing"),
-    shippingAddress: text("shipping_address"),
-    paymentMethod: varchar("payment_method", { length: 50 }),
+    billingAddressId: integer("billing_address_id")
+      .references(() => addresses.id, { onDelete: "set null" })
+      .notNull(),
+    shippingAddressId: integer("shipping_address_id")
+      .references(() => addresses.id, { onDelete: "set null" })
+      .notNull(),
+    paymentMethod: paymentMethodEnum("payment_method")
+      .notNull()
+      .default("polar"),
     notes: text("notes"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -108,6 +142,25 @@ export const orders = pgTable(
     index("orders_user_id_idx").on(table.userId),
     index("orders_status_idx").on(table.status),
     index("orders_created_at_idx").on(table.createdAt),
+  ],
+);
+
+// Currency table to store product currencies within in Rupees and Dollars
+export const productCurrencyPrices = pgTable(
+  "product_currency_prices",
+  {
+    id: serial("id").primaryKey(),
+    productId: integer("product_id")
+      .references(() => product.productId, { onDelete: "cascade" })
+      .notNull(),
+    priceAmount: integer("price_amount").notNull(),
+    currencyType: currencyEnum("currency_type").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("product_currency_prices_product_id_idx").on(table.productId),
+    index("product_currency_prices_currency_type_idx").on(table.currencyType),
   ],
 );
 
@@ -180,6 +233,14 @@ export const orderProductInsertSchema = createInsertSchema(orderProduct);
 export const orderProductSelectSchema = createSelectSchema(orderProduct);
 export const paymentInsertSchema = createInsertSchema(payments);
 export const paymentSelectSchema = createSelectSchema(payments);
+export const addressInsertSchema = createInsertSchema(addresses);
+export const addressSelectSchema = createSelectSchema(addresses);
+export const productCurrencyPriceInsertSchema = createInsertSchema(
+  productCurrencyPrices,
+);
+export const productCurrencyPriceSelectSchema = createSelectSchema(
+  productCurrencyPrices,
+);
 
 // Infer types from schema
 export type TCategory = (typeof categoryEnum.enumValues)[number];
@@ -189,6 +250,8 @@ export type TOrder = typeof orders.$inferSelect;
 export type TProduct = typeof product.$inferSelect;
 export type TUser = typeof users.$inferSelect;
 export type TPayment = typeof payments.$inferSelect;
+export type TAddress = typeof addresses.$inferSelect;
+export type TProductCurrencyPrices = typeof productCurrencyPrices.$inferSelect;
 
 // Infer insert types from schema
 export type TOrderProductInsert = typeof orderProduct.$inferInsert;
@@ -196,3 +259,6 @@ export type TOrderInsert = typeof orders.$inferInsert;
 export type TProductInsert = typeof product.$inferInsert;
 export type TUserInsert = typeof users.$inferInsert;
 export type TPaymentInsert = typeof payments.$inferInsert;
+export type TAddressInsert = typeof addresses.$inferInsert;
+export type TProductCurrencyPricesInsert =
+  typeof productCurrencyPrices.$inferInsert;
