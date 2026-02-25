@@ -1,72 +1,184 @@
 import { db } from "@/db";
-import { orders, orderProduct, product } from "@/db/schema";
+import { orders, orderProduct, product, addresses } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { TOrder, TOrderProduct } from "@/db/schema";
-import { ordersSample, orderProductsSample } from "@/sample/orders.sample";
+// import { ordersSample, orderProductsSample } from "@/sample/orders.sample";
 import {
   CreateOrderBody,
   OrderWithProducts,
   UpdateOrderBody,
 } from "@/schema/order.schema";
 import { productService } from "./product.service";
-import { IProducts } from "@/types/payment";
+import { CurrencyEnum, IProducts } from "@/types/payment";
 
-export class OrderService {
+interface IOrderService {
+  createOrder(data: TCreateOrder): Promise<OrderWithProducts>;
+  getOrderById(orderId: number): Promise<OrderWithProducts | null>;
+  getOrdersByUserId(userId: number): Promise<OrderWithProducts[]>;
+  updateOrder(
+    orderId: number,
+    data: UpdateOrderBody,
+  ): Promise<OrderWithProducts>;
+  addProductToOrder(
+    orderId: number,
+    productId: number,
+    quantity?: number,
+  ): Promise<OrderWithProducts>;
+  removeProductFromOrder(
+    orderId: number,
+    productId: number,
+  ): Promise<OrderWithProducts>;
+  getAllOrders(options?: {
+    userId?: number;
+    status?: "processing" | "delivered" | "cancelled";
+    limit?: number;
+    offset?: number;
+  }): Promise<{ orders: OrderWithProducts[]; total: number }>;
+}
+
+type TPaymentMethod = "razorpay" | "polar";
+
+type TCreateOrder = CreateOrderBody & {
+  method: TPaymentMethod;
+};
+
+type mapObject = {
+  [key in TPaymentMethod]: CurrencyEnum;
+};
+
+const mapPaymentMethodToCurrency = Object.freeze({
+  razorpay: "usd",
+  polar: "inr",
+}) as mapObject;
+
+type getOrderType = {
+  options?: {
+    id?: number;
+    userId?: number;
+  };
+};
+
+export class OrderService implements IOrderService {
   /**
    * Create a new order with products
    * @param data Order creation data including products array
    * @returns Created order with associated products
    */
-  async createOrder(data: CreateOrderBody): Promise<OrderWithProducts> {
-    // Ensure we have a userId before proceeding – the handler is responsible
-    // for populating this from the auth token.  At compile time the type is
-    // optional, so we guard and then assert to satisfy the Drizzle insert
-    // signature.
+
+  private async getOrder({ options }: getOrderType) {
+    let whereCondition = [];
+
+    if (options?.id) {
+      whereCondition.push(eq(orders.id, options.id));
+    }
+
+    if (options?.userId) {
+      whereCondition.push(eq(orders.userId, options.userId));
+    }
+
+    const [order] = await db
+      .select()
+      .from(orders)
+      .where(and(...whereCondition))
+      .limit(1);
+
+    if (!order) {
+      throw new Error(`Order with ID ${options?.id} not found`);
+    }
+
+    return order;
+  }
+
+  private async checkProductsExist(
+    products: { productId: number; quantity: number }[],
+  ): Promise<boolean> {
+    for (const item of products) {
+      const [foundProduct] = await db
+        .select()
+        .from(product)
+        .where(eq(product.productId, item.productId))
+        .limit(1);
+
+      if (!foundProduct) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   *
+   * @param data
+   * @returns
+   */
+  async createOrder(data: TCreateOrder) {
     if (typeof data.userId !== "number") {
       throw new Error("userId is required to create order");
     }
 
-    // Get product prices to calculate total amount
-
-    // const productIds = data.products.map((p) => p.productId)
+    const { method } = data;
+    const orderCurrency: CurrencyEnum = mapPaymentMethodToCurrency[method];
 
     let totalAmount = 0;
     const productDetails: IProducts[] = [];
 
-    // Find the product to get its price
     for (const item of data.products) {
-      const foundProduct = await productService.getProductById(item.productId);
+      // Fetch product price in the specific order currency
+      const foundProduct = await productService.getProductById(
+        item.productId,
+        orderCurrency,
+      );
 
       totalAmount += foundProduct.price * item.quantity;
       productDetails.push(foundProduct);
     }
 
+    const [shippingAddress] = await db
+      .select()
+      .from(addresses)
+      .where(eq(addresses.userId, data.userId));
+
     const [createdOrder] = await db
       .insert(orders)
       .values({
+        billingAddressId: shippingAddress.id,
+        shippingAddressId: shippingAddress.id,
+        totalAmountCurrency: orderCurrency,
         userId: data.userId!,
-        totalAmount, // store total amount in Paises
+        totalAmount: productService.convertToPaises(totalAmount), // Store total amount in base units (paises/cents)
         status: "processing",
-        shippingAddress: data.shippingAddress,
-        paymentMethod: data.paymentMethod,
+        paymentMethod: data.method,
         notes: data.notes,
+        createdAt: new Date(),
       })
       .returning();
 
     // Insert order products
     for (const item of data.products) {
+      const productPriceInOrderCurrency = productDetails.find(
+        (p) => p.productId === item.productId,
+      )?.price;
+
+      if (productPriceInOrderCurrency === undefined) {
+        throw new Error(
+          `Price for product ${item.productId} not found in ${orderCurrency}`,
+        );
+      }
+
       await db.insert(orderProduct).values({
         orderId: createdOrder.id,
         productId: item.productId,
         quantity: item.quantity,
-        priceAtOrder: productDetails.find((p) => p.productId === item.productId)
-          ?.price as number, // store price at order time in Paises
+        priceAtOrder: productService.convertToPaises(
+          productPriceInOrderCurrency,
+        ), // Store price at order time in base units
       });
     }
 
     return {
       order: createdOrder,
-      products: [],
+      products: [], // You might want to fetch and populate this more thoroughly
     };
   }
 
@@ -75,12 +187,12 @@ export class OrderService {
    * @param orderId Order ID
    * @returns Order with products or null if not found
    */
-  async getOrderById(orderId: number): Promise<OrderWithProducts | null> {
-    const [foundOrder] = await db
-      .select()
-      .from(orders)
-      .where(eq(orders.id, orderId))
-      .limit(1);
+  async getOrderById(orderId: number) {
+    const foundOrder = await this.getOrder({
+      options: {
+        id: orderId,
+      },
+    });
 
     // Get associated products
     const orderProducts = await db
@@ -99,7 +211,7 @@ export class OrderService {
    * @param userId User ID
    * @returns Array of orders with products
    */
-  async getOrdersByUserId(userId: number): Promise<OrderWithProducts[]> {
+  async getOrdersByUserId(userId: number) {
     const userOrders = await db
       .select()
       .from(orders)
@@ -134,11 +246,11 @@ export class OrderService {
   ): Promise<OrderWithProducts> {
     try {
       // Find the order
-      const [foundOrder] = await db
-        .select()
-        .from(orders)
-        .where(eq(orders.id, orderId))
-        .limit(1);
+      const foundOrder = await this.getOrder({
+        options: {
+          id: orderId,
+        },
+      });
 
       if (!foundOrder) {
         throw new Error(`Order with ID ${orderId} not found`, {
@@ -155,12 +267,37 @@ export class OrderService {
 
       const now = new Date();
 
+      const [shippingAddressId] = await db
+        .select({
+          shippingAddressId: addresses.id,
+        })
+        .from(addresses)
+        .where(
+          and(
+            eq(addresses.id, foundOrder.shippingAddressId),
+            eq(addresses.addressType, "shipping"),
+          ),
+        );
+
+      const [billingAddressId] = await db
+        .select({
+          billingAddressId: addresses.id,
+        })
+        .from(addresses)
+        .where(
+          and(
+            eq(addresses.id, foundOrder.billingAddressId),
+            eq(addresses.addressType, "billing"),
+          ),
+        );
+
       // Update order fields
       const updatedOrder: TOrder = {
         ...foundOrder,
         status: data.status ?? foundOrder.status,
-        shippingAddress: data.shippingAddress ?? foundOrder.shippingAddress,
-        paymentMethod: data.paymentMethod ?? foundOrder.paymentMethod,
+        shippingAddressId: shippingAddressId.shippingAddressId,
+        billingAddressId: billingAddressId.billingAddressId,
+        paymentMethod: foundOrder.paymentMethod,
         notes: data.notes ?? foundOrder.notes,
         updatedAt: now,
       };
@@ -174,8 +311,9 @@ export class OrderService {
         .update(orders)
         .set({
           status: data.status,
-          shippingAddress: data.shippingAddress,
-          paymentMethod: data.paymentMethod,
+          shippingAddressId: foundOrder.shippingAddressId,
+          billingAddressId: foundOrder.billingAddressId,
+          paymentMethod: foundOrder.paymentMethod,
           notes: data.notes,
           updatedAt: now,
         })
@@ -226,11 +364,11 @@ export class OrderService {
     }
 
     // Find product by external productId (matches order_product.productId FK)
-    const [foundProduct] = await db
-      .select()
-      .from(product)
-      .where(eq(product.productId, productId))
-      .limit(1);
+    // Fetch product price in the order's currency
+    const foundProduct = await productService.getProductById(
+      productId,
+      foundOrder.totalAmountCurrency,
+    );
 
     if (!foundProduct) {
       throw new Error(`Product with ID ${productId} not found`);
@@ -310,53 +448,57 @@ export class OrderService {
     productId: number,
   ): Promise<OrderWithProducts> {
     // Find the order
-    const orderIndex = ordersSample.findIndex((o) => o.id === orderId);
+    const { order, products } = await this.getOrderById(orderId);
 
-    if (orderIndex === -1) {
+    if (!order) {
       throw new Error(`Order with ID ${orderId} not found`);
     }
 
-    const existingOrder = ordersSample[orderIndex];
-
     // Status Guard: Cannot remove products from delivered or cancelled orders
-    if (
-      existingOrder.status === "delivered" ||
-      existingOrder.status === "cancelled"
-    ) {
+    if (order.status === "delivered" || order.status === "cancelled") {
       throw new Error(
-        `Cannot remove products from an order that is '${existingOrder.status}'`,
+        `Cannot remove products from an order that is '${order.status}'`,
       );
     }
 
-    // Find the order product
-    const orderProductIndex = orderProductsSample.findIndex(
-      (op) => op.orderId === orderId && op.productId === productId,
-    );
-
-    if (orderProductIndex === -1) {
-      throw new Error(
-        `Product with ID ${productId} not found in order ${orderId}`,
-      );
-    }
-
-    // Remove the order product
-    orderProductsSample.splice(orderProductIndex, 1);
-
-    // await db
-    //   .delete(orderProduct)
-    //   .where(
-    //     and(
-    //       eq(orderProduct.orderId, orderId),
-    //       eq(orderProduct.productId, productId),
-    //     ),
-    //   );
+    // Check if the product exists in the order
+    await this.checkProductsExist([{ productId, quantity: 1 }]);
 
     const now = new Date();
 
-    // Recalculate total amount
-    const remainingProducts = orderProductsSample.filter(
-      (op) => op.orderId === orderId,
+    // Remove the product from the order and reextract remaining products to recalculate total
+    const remainingProducts: TOrderProduct[] = await db.transaction(
+      async (tx) => {
+        const [deletedOrderProduct] = await tx
+          .select()
+          .from(orderProduct)
+          .where(
+            and(
+              eq(orderProduct.orderId, orderId),
+              eq(orderProduct.productId, productId),
+            ),
+          )
+          .limit(1);
+
+        if (!deletedOrderProduct) {
+          throw new Error(
+            `Product with ID ${productId} not found in order ${orderId}`,
+          );
+        }
+
+        const products = await tx
+          .delete(orderProduct)
+          .where(eq(orderProduct.id, deletedOrderProduct.id));
+
+        if (products)
+          throw new Error(
+            `Failed to delete product with ID ${productId} from order ${orderId}`,
+          );
+
+        return products;
+      },
     );
+
     const newTotalAmount = remainingProducts.reduce(
       (sum, op) => sum + op.priceAtOrder * op.quantity,
       0,
@@ -364,20 +506,19 @@ export class OrderService {
 
     // Update order
     const updatedOrder: TOrder = {
-      ...existingOrder,
+      ...order,
       totalAmount: newTotalAmount,
       updatedAt: now,
     };
 
-    // await db
-    //   .update(orders)
-    //   .set({ totalAmount: newTotalAmount, updatedAt: now })
-    //   .where(eq(orders.id, orderId));
-
-    ordersSample[orderIndex] = updatedOrder;
+    const [updatedOrderResult] = await db
+      .update(orders)
+      .set({ totalAmount: newTotalAmount, updatedAt: now })
+      .where(eq(orders.id, orderId))
+      .returning();
 
     return {
-      order: updatedOrder,
+      order: updatedOrderResult,
       products: remainingProducts,
     };
   }
@@ -392,37 +533,42 @@ export class OrderService {
     status?: "processing" | "delivered" | "cancelled";
     limit?: number;
     offset?: number;
-  }): Promise<{ orders: OrderWithProducts[]; total: number }> {
+  }) {
     const { userId, status, limit = 10, offset = 0 } = options || {};
+    const whereConditions = [];
 
-    // Filter orders
-    // const query = db.select().from(orders);
-    // if (userId) query.where(eq(orders.userId, userId));
-    // if (status) query.where(eq(orders.status, status));
-    // const allOrders = await query.limit(limit).offset(offset);
-
-    let filteredOrders = [...ordersSample];
-
-    // Apply filters
-    if (userId !== undefined) {
-      filteredOrders = filteredOrders.filter((o) => o.userId === userId);
+    if (userId) {
+      whereConditions.push(eq(orders.userId, userId));
     }
-    if (status !== undefined) {
-      filteredOrders = filteredOrders.filter((o) => o.status === status);
+    if (status) {
+      whereConditions.push(eq(orders.status, status));
     }
 
-    const total = filteredOrders.length;
+    const ordersQuery = db
+      .select()
+      .from(orders)
+      .where(whereConditions.length > 0 ? and(...whereConditions) : undefined)
+      .limit(limit)
+      .offset(offset);
 
-    // Apply pagination
-    const paginatedOrders = filteredOrders.slice(offset, offset + limit);
+    const totalQuery = db
+      .select({ count: db.$count(orders.id) })
+      .from(orders)
+      .where(whereConditions.length > 0 ? and(...whereConditions) : undefined);
 
-    // Get products for each order
+    const [totalResult] = await totalQuery;
+    const total = Number(totalResult?.count) || 0;
+
+    const ordersResults = await ordersQuery;
+
     const result: OrderWithProducts[] = [];
 
-    for (const order of paginatedOrders) {
-      const orderProducts = orderProductsSample.filter(
-        (op) => op.orderId === order.id,
-      );
+    for (const order of ordersResults) {
+      const orderProducts = await db
+        .select()
+        .from(orderProduct)
+        .where(eq(orderProduct.orderId, order.id));
+
       result.push({
         order,
         products: orderProducts,
@@ -436,40 +582,14 @@ export class OrderService {
   }
 
   /**
-   * Delete an order and its associated products
-   * @param orderId Order ID
-   * @returns Deletion confirmation
+   * Check if an order exists by ID
+   * @param orderId Order ID to check existence
    */
-  async deleteOrder(
-    orderId: number,
-  ): Promise<{ deleted: boolean; orderId: number }> {
-    // Find the order
-    const orderIndex = ordersSample.findIndex((o) => o.id === orderId);
+  async orderRecord(orderId: number) {
+    const order = await this.getOrderById(orderId);
 
-    if (orderIndex === -1) {
+    if (!order) {
       throw new Error(`Order with ID ${orderId} not found`);
     }
-
-    // Delete associated order products first
-    // await db
-    //   .delete(orderProduct)
-    //   .where(eq(orderProduct.orderId, orderId));
-
-    // Remove all order products for this order
-    for (let i = orderProductsSample.length - 1; i >= 0; i--) {
-      if (orderProductsSample[i].orderId === orderId) {
-        orderProductsSample.splice(i, 1);
-      }
-    }
-
-    // Delete the order
-    // await db.delete(orders).where(eq(orders.id, orderId));
-
-    ordersSample.splice(orderIndex, 1);
-
-    return {
-      deleted: true,
-      orderId,
-    };
   }
 }
