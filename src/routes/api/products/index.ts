@@ -1,4 +1,4 @@
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 import { ZodTypeProvider } from "fastify-type-provider-zod";
 
 import {
@@ -8,11 +8,11 @@ import {
   deleteProductSchema,
 } from "@/schema/product.schema";
 import {
-  getProductsHandler,
-  getProductByIdHandler,
+  // getProductsHandler,
+  // getProductByIdHandler,
   createProductHandler,
-  updateProductHandler,
-  deleteProductHandler,
+  // updateProductHandler,
+  // deleteProductHandler,
 } from "./handler";
 
 /**
@@ -26,9 +26,9 @@ import {
  */
 export default async function productsRoute(fastify: FastifyInstance) {
   // Get all products (with optional category filter)
-  fastify.withTypeProvider<ZodTypeProvider>().get("/", {
-    handler: getProductsHandler.handler,
-  });
+  // fastify.withTypeProvider<ZodTypeProvider>().get("/", {
+  //   handler: getProductsHandler.handler,
+  // });
 
   // Create a new product
   fastify.withTypeProvider<ZodTypeProvider>().post("/", {
@@ -36,21 +36,21 @@ export default async function productsRoute(fastify: FastifyInstance) {
     handler: createProductHandler.handler,
   });
 
-  // Get product by ID
-  fastify.withTypeProvider<ZodTypeProvider>().get("/:productId", {
-    schema: getProductByIdSchema,
-    handler: getProductByIdHandler.handler,
-  });
+  // // Get product by ID
+  // fastify.withTypeProvider<ZodTypeProvider>().get("/:productId", {
+  //   schema: getProductByIdSchema,
+  //   handler: getProductByIdHandler.handler,
+  // });
 
-  // Update a product
-  fastify.withTypeProvider<ZodTypeProvider>().put("/:productId", {
-    schema: updateProductSchema,
-    handler: updateProductHandler.handler,
-  });
+  // // Update a product
+  // fastify.withTypeProvider<ZodTypeProvider>().put("/:productId", {
+  //   schema: updateProductSchema,
+  //   handler: updateProductHandler.handler,
+  // });
 
-  // Delete a product
-  fastify.withTypeProvider<ZodTypeProvider>().delete("/:productId", {
-    schema: deleteProductSchema,
-    handler: deleteProductHandler.handler,
-  });
+  // // Delete a product
+  // fastify.withTypeProvider<ZodTypeProvider>().delete("/:productId", {
+  //   schema: deleteProductSchema,
+  //   handler: deleteProductHandler.handler,
+  // });
 }
