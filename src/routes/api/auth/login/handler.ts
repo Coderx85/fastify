@@ -1,12 +1,11 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 
 import { verifyPassword } from "@/lib/hash";
-import { LoginBody } from "@/schema/auth.schema";
-import { users } from "@/db/schema";
+import { LoginSchemaInput as LoginBody } from "@/schema/auth.schema";
 import { sendError, sendSuccess } from "@/lib/response";
-import { eq } from "drizzle-orm";
-import { db } from "@/db";
 import { generateAuthToken } from "@/lib/token";
+import { userService } from "@/modules/user.service";
+import { IUser } from "@/types/user.definition";
 
 export const loginRouteHandler = {
   handler: async (
@@ -15,11 +14,12 @@ export const loginRouteHandler = {
   ) => {
     const { email, password } = request.body;
 
-    // Find user
-    const [user] = await db.select().from(users).where(eq(users.email, email));
+    let user: IUser | undefined;
 
-    if (!user) {
-      return sendError("User not found", "NOT_FOUND", reply, 404);
+    try {
+      user = await userService.findByEmail(email, password);
+    } catch {
+      return sendError("User not found", "USER_NOT_FOUND", reply, 404);
     }
 
     // Verify password

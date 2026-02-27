@@ -1,9 +1,8 @@
 import { FastifyReply, FastifyRequest } from "fastify";
-import { RegisterBody } from "@/schema/auth.schema";
-import { users } from "@/db/schema";
+import { RegisterBody, TAuthUserDTO } from "@/schema/auth.schema";
 import { sendError, sendSuccess, hashPassword } from "@/lib";
-import { eq } from "drizzle-orm";
-import { db } from "@/db";
+import { userService } from "@/modules/user.service";
+import { generateAuthToken } from "@/lib/token";
 
 export const registerRouteHandler = {
   handler: async (
@@ -12,41 +11,36 @@ export const registerRouteHandler = {
     }>,
     reply: FastifyReply,
   ) => {
+    const { email, password, name, contact } = request.body;
     try {
-      const { email, password, name } = request.body;
-
-      // Check if user exists
-      const [existingUsers] = await db
-        .select()
-        .from(users)
-        .where(eq(users.email, email));
-
-      if (existingUsers) {
-        return sendError("User already exists", "USER_EXISTS", reply, 409);
-      }
-
       // Create user
       const hashedPassword = hashPassword(password);
 
-      const [newUser] = await db
-        .insert(users)
-        .values({
-          email,
-          password: hashedPassword,
-          name,
-        })
-        .returning({
-          id: users.id,
-          email: users.email,
-          name: users.name,
-        });
+      // Check if user already exists
+      const newUser = await userService.createUser({
+        name,
+        email,
+        password: hashedPassword,
+        contact,
+      });
 
       if (!newUser) {
         throw new Error("User creation failed");
       }
 
+      const token = generateAuthToken({ id: newUser.id, email: newUser.email });
+
+      const userDTO: TAuthUserDTO = {
+        user: {
+          id: newUser.id,
+          email: newUser.email,
+          name: newUser.name,
+        },
+        token,
+      };
+
       // Return success with user data
-      return sendSuccess(newUser, "User registered successfully", reply, 201);
+      return sendSuccess(userDTO, "User registered successfully", reply, 201);
     } catch (error: unknown) {
       console.error("Registration error:", error);
       return sendError(

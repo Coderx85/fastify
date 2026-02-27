@@ -1,4 +1,10 @@
-export const hashPassword = (password: string): string =>
-  Buffer.from(password).toString("base64");
+import * as bcrpyt from "bcrypt";
+
+export const hashPassword = (password: string): string => {
+  const saltRounds = bcrpyt.genSaltSync();
+  const hash = bcrpyt.hashSync(password, saltRounds);
+  return hash.toString();
+};
+
 export const verifyPassword = (password: string, hash: string): boolean =>
-  hashPassword(password) === hash;
+  bcrpyt.compareSync(password, hash);

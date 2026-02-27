@@ -52,7 +52,6 @@ export function deleteResetToken(token: string): void {
   passwordResetTokens.delete(token);
 }
 
-
 // --- JWT Authentication Token ---
 
 /**
