@@ -1,23 +1,22 @@
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 import { ZodTypeProvider } from "fastify-type-provider-zod";
 
 import {
-  createOrderSchema,
+  createOrderInputSchema,
+  getAllOrdersSchema,
   getOrderByIdSchema,
   updateOrderSchema,
   addProductToOrderSchema,
   removeProductFromOrderSchema,
-  getAllOrdersSchema,
-  deleteOrderSchema,
 } from "@/schema/order.schema";
 import {
-  createOrderHandler,
+  orderController,
   getOrderByIdHandler,
   updateOrderHandler,
   addProductToOrderHandler,
   removeProductFromOrderHandler,
   getAllOrdersHandler,
-  deleteOrderHandler,
+  OrderController,
 } from "./handler";
 
 /**
@@ -32,18 +31,18 @@ import {
  @DELETE /api/order/:orderId/products/:productId → Remove product from order
  */
 export default async function ordersRoute(fastify: FastifyInstance) {
+  // Create a new order
+  // POST /api/order
+  fastify.withTypeProvider<ZodTypeProvider>().post("/", {
+    schema: createOrderInputSchema,
+    handler: OrderController.prototype.createOrder,
+  });
+
   // Get all orders
   // GET /api/order
   fastify.withTypeProvider<ZodTypeProvider>().get("/", {
     schema: getAllOrdersSchema,
     handler: getAllOrdersHandler.handler,
-  });
-
-  // Create a new order
-  // POST /api/order
-  fastify.withTypeProvider<ZodTypeProvider>().post("/", {
-    schema: createOrderSchema,
-    handler: createOrderHandler.handler,
   });
 
   // Get order by ID
@@ -58,13 +57,6 @@ export default async function ordersRoute(fastify: FastifyInstance) {
   fastify.withTypeProvider<ZodTypeProvider>().put("/:orderId", {
     schema: updateOrderSchema,
     handler: updateOrderHandler.handler,
-  });
-
-  // Delete an order
-  // DELETE /api/order/:orderId
-  fastify.withTypeProvider<ZodTypeProvider>().delete("/:orderId", {
-    schema: deleteOrderSchema,
-    handler: deleteOrderHandler.handler,
   });
 
   // Add product to order

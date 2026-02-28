@@ -2,6 +2,7 @@ import { FastifyReply, FastifyRequest } from "fastify";
 import { sendError, sendSuccess } from "@/lib/response";
 import { CreateProductInput } from "@/schema/product.schema";
 import { productService } from "@/modules/products/product.service";
+import { IProduct } from "@/modules/products/product.definition";
 
 /**
  * Handler for getting all products (with optional category filter)
@@ -92,7 +93,18 @@ export const createProductHandler = {
     reply: FastifyReply,
   ) => {
     try {
-      const result = await productService.createProduct(request.body);
+      const { name, description, category, amount, currency } = request.body;
+
+      let result: IProduct = {} as IProduct;
+
+      result = await productService.createProduct({
+        name,
+        description,
+        category,
+        amount,
+        currency,
+        createdAt: new Date(),
+      });
       return sendSuccess(result, "Product created successfully", reply, 201);
     } catch (error) {
       request.log.error(error);
@@ -114,85 +126,3 @@ export const createProductHandler = {
     }
   },
 };
-
-// /**
-//  * Handler for updating a product
-//  *@method PUT /products/:productId
-//  */
-// export const updateProductHandler = {
-//   handler: async (
-//     request: FastifyRequest<{
-//       Params: UpdateProductParams;
-//       Body: UpdateProductBody;
-//     }>,
-//     reply: FastifyReply,
-//   ) => {
-//     try {
-//       const { productId } = request.params;
-//       const result = await productService.updateProduct(
-//         productId,
-//         request.body,
-//       );
-
-//       if (!result) {
-//         return sendError(
-//           `Product with ID ${productId} not found`,
-//           "NOT_FOUND",
-//           reply,
-//           404,
-//         );
-//       }
-
-//       sendSuccess(
-//         { product: result },
-//         "Product updated successfully",
-//         reply,
-//         200,
-//       );
-//     } catch (error) {
-//       request.log.error(error);
-//       return sendError(
-//         "Failed to update product",
-//         "INTERNAL_SERVER_ERROR",
-//         reply,
-//         500,
-//       );
-//     }
-//   },
-// };
-
-// /**
-//  * Handler for deleting a product
-//  *@method DELETE /products/:productId
-//  */
-// export const deleteProductHandler = {
-//   handler: async (
-//     request: FastifyRequest<{ Params: DeleteProductParams }>,
-//     reply: FastifyReply,
-//   ) => {
-//     try {
-//       const { productId } = request.params;
-//       const result = await productService.deleteProduct(productId);
-
-//       sendSuccess(result, "Product deleted successfully", reply, 200);
-//     } catch (error: any) {
-//       if (error.cause && error.cause.code === STATUS_CODES[404]) {
-//         // Handle case where product was not found for deletion
-//         return sendError(
-//           `Product with ID ${request.params.productId} not found`,
-//           "NOT_FOUND",
-//           reply,
-//           404,
-//         );
-//       }
-
-//       request.log.error(error);
-//       return sendError(
-//         "Failed to delete product",
-//         "INTERNAL_SERVER_ERROR",
-//         reply,
-//         500,
-//       );
-//     }
-//   },
-// };

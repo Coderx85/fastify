@@ -11,102 +11,131 @@ import {
   GetAllOrdersQuery,
   DeleteOrderParams,
 } from "@/schema/order.schema";
-import { OrderService } from "@/modules/order.service";
+import { OrderService } from "@/modules/orders/order.service";
+import {
+  IOrder,
+  IOrderController,
+  IOrderInput,
+  IOrderResult,
+} from "@/modules/orders/order.definiton";
 
 // Initialize service
 const orderService = new OrderService();
 
-/**
- * Handler for creating a new order
- * POST /orders
- */
-export const createOrderHandler = {
-  handler: async (
-    request: FastifyRequest<{ Body: CreateOrderBody }>,
+// /**
+//  * Handler for creating a new order
+//  * POST /orders
+//  */
+// export const createOrderHandler = {
+//   handler: async (
+//     request: FastifyRequest<{ Body: CreateOrderBody }>,
+//     reply: FastifyReply,
+//   ) => {
+//     try {
+//       // If the client did not provide a userId, attempt to extract it from
+//       // the Bearer token.  This keeps the API usable from authenticated
+//       // clients without forcing them to send their own user ID (which could
+//       // otherwise be spoofed).
+//       const orderData = { ...request.body } as CreateOrderBody;
+
+//       if (!orderData.userId) {
+//         const authHeader = request.headers.authorization;
+//         if (authHeader && authHeader.startsWith("Bearer ")) {
+//           const token = authHeader.slice(7);
+//           const { verifyAuthToken } = await import("@/lib/token");
+//           const payload = verifyAuthToken(token);
+//           if (
+//             payload &&
+//             typeof payload === "object" &&
+//             "id" in payload &&
+//             typeof (payload as any).id === "number"
+//           ) {
+//             orderData.userId = (payload as any).id;
+//           }
+//         }
+//       }
+
+//       if (!orderData.userId) {
+//         return sendError(
+//           "Unauthorized: missing user ID",
+//           "UNAUTHORIZED",
+//           reply,
+//           401,
+//         );
+//       }
+
+//       // Create the order
+//       const result = await orderService.createOrder(orderData);
+
+//       // Send success response
+//       sendSuccess(result, "Order created successfully", reply, 201);
+//     } catch (error) {
+//       request.log.error(error);
+
+//       // Check if it's a product not found error
+//       if (error instanceof Error) {
+//         return sendError(error.message, "PRODUCT_NOT_FOUND", reply, 404);
+//       }
+
+//       return sendError(
+//         "Failed to create order",
+//         "INTERNAL_SERVER_ERROR",
+//         reply,
+//         500,
+//       );
+//     }
+//   },
+// };
+
+class OrderController implements IOrderController {
+  async createOrder(
+    request: FastifyRequest<{ Body: IOrderInput }>,
     reply: FastifyReply,
-  ) => {
+  ): Promise<void> {
     try {
-      // If the client did not provide a userId, attempt to extract it from
-      // the Bearer token.  This keeps the API usable from authenticated
-      // clients without forcing them to send their own user ID (which could
-      // otherwise be spoofed).
-      const orderData = { ...request.body } as CreateOrderBody;
+      const orderData = request.body;
 
-      if (!orderData.userId) {
-        const authHeader = request.headers.authorization;
-        if (authHeader && authHeader.startsWith("Bearer ")) {
-          const token = authHeader.slice(7);
-          const { verifyAuthToken } = await import("@/lib/token");
-          const payload = verifyAuthToken(token);
-          if (
-            payload &&
-            typeof payload === "object" &&
-            "id" in payload &&
-            typeof (payload as any).id === "number"
-          ) {
-            orderData.userId = (payload as any).id;
-          }
-        }
+      // Extract userId from request (could come from auth middleware or request body)
+      const userId = orderData.userId;
+
+      if (!userId) {
+        return sendError("User ID is required", "BAD_REQUEST", reply, 400);
       }
 
-      if (!orderData.userId) {
-        return sendError(
-          "Unauthorized: missing user ID",
-          "UNAUTHORIZED",
-          reply,
-          401,
-        );
-      }
+      // Call service with userId and data
+      const result = await orderService.createOrder(userId, orderData);
 
-      // Create the order
-      const result = await orderService.createOrder(orderData);
-
-      // Send success response
       sendSuccess(result, "Order created successfully", reply, 201);
     } catch (error) {
       request.log.error(error);
 
-      // Check if it's a product not found error
       if (error instanceof Error) {
-        return sendError(error.message, "PRODUCT_NOT_FOUND", reply, 404);
+        const message = error.message;
+        if (message.includes("not found") || message.includes("Product")) {
+          return sendError(message, "NOT_FOUND", reply, 404);
+        }
+        if (message.includes("validation") || message.includes("required")) {
+          return sendError(message, "BAD_REQUEST", reply, 400);
+        }
       }
 
-      return sendError(
-        "Failed to create order",
-        "INTERNAL_SERVER_ERROR",
-        reply,
-        500,
-      );
+      sendError("Failed to create order", "INTERNAL_SERVER_ERROR", reply, 500);
     }
-  },
-};
+  }
+}
+
+export const orderController = new OrderController();
+export { OrderController };
 
 /**
  * Handler for getting an order by ID
  * GET /orders/:orderId
  */
 export const getOrderByIdHandler = {
-  handler: async (
-    request: FastifyRequest<{ Params: GetOrderByIdParams }>,
-    reply: FastifyReply,
-  ) => {
+  handler: async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const { orderId } = request.params;
-
-      // Get the order
-      const result = await orderService.getOrderById(orderId);
-
-      if (!result) {
-        return sendError(
-          `Order with ID ${orderId} not found`,
-          "NOT_FOUND",
-          reply,
-          404,
-        );
-      }
-
-      // Send success response
-      sendSuccess(result, "Order fetched successfully", reply, 200);
+      // TODO: Implement getOrderById method in OrderService
+      return sendError("Not implemented yet", "NOT_IMPLEMENTED", reply, 501);
     } catch (error) {
       request.log.error(error);
       return sendError(
@@ -124,29 +153,12 @@ export const getOrderByIdHandler = {
  * PUT /orders/:orderId
  */
 export const updateOrderHandler = {
-  handler: async (
-    request: FastifyRequest<{
-      Params: UpdateOrderParams;
-      Body: UpdateOrderBody;
-    }>,
-    reply: FastifyReply,
-  ) => {
+  handler: async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const { orderId } = request.params;
-      const updateData = request.body;
-
-      // Update the order
-      const result = await orderService.updateOrder(orderId, updateData);
-
-      // Send success response
-      sendSuccess(result, "Order updated successfully", reply, 200);
+      // TODO: Implement updateOrder method in OrderService
+      return sendError("Not implemented yet", "NOT_IMPLEMENTED", reply, 501);
     } catch (error) {
       request.log.error(error);
-
-      if (error instanceof Error && error.message.includes("not found")) {
-        return sendError(error.message, "NOT_FOUND", reply, 404);
-      }
-
       return sendError(
         "Failed to update order",
         "INTERNAL_SERVER_ERROR",
@@ -162,33 +174,12 @@ export const updateOrderHandler = {
  * POST /orders/:orderId/products
  */
 export const addProductToOrderHandler = {
-  handler: async (
-    request: FastifyRequest<{
-      Params: AddProductToOrderParams;
-      Body: AddProductToOrderBody;
-    }>,
-    reply: FastifyReply,
-  ) => {
+  handler: async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const { orderId } = request.params;
-      const { productId, quantity } = request.body;
-
-      // Add product to order
-      const result = await orderService.addProductToOrder(
-        orderId,
-        productId,
-        quantity,
-      );
-
-      // Send success response
-      sendSuccess(result, "Product added to order successfully", reply, 200);
+      // TODO: Implement addProductToOrder method in OrderService
+      return sendError("Not implemented yet", "NOT_IMPLEMENTED", reply, 501);
     } catch (error) {
       request.log.error(error);
-
-      if (error instanceof Error && error.message.includes("not found")) {
-        return sendError(error.message, "NOT_FOUND", reply, 404);
-      }
-
       return sendError(
         "Failed to add product to order",
         "INTERNAL_SERVER_ERROR",
@@ -204,33 +195,12 @@ export const addProductToOrderHandler = {
  * DELETE /orders/:orderId/products/:productId
  */
 export const removeProductFromOrderHandler = {
-  handler: async (
-    request: FastifyRequest<{ Params: RemoveProductFromOrderParams }>,
-    reply: FastifyReply,
-  ) => {
+  handler: async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const { orderId, productId } = request.params;
-
-      // Remove product from order
-      const result = await orderService.removeProductFromOrder(
-        orderId,
-        productId,
-      );
-
-      // Send success response
-      sendSuccess(
-        result,
-        "Product removed from order successfully",
-        reply,
-        200,
-      );
+      // TODO: Implement removeProductFromOrder method in OrderService
+      return sendError("Not implemented yet", "NOT_IMPLEMENTED", reply, 501);
     } catch (error) {
       request.log.error(error);
-
-      if (error instanceof Error && error.message.includes("not found")) {
-        return sendError(error.message, "NOT_FOUND", reply, 404);
-      }
-
       return sendError(
         "Failed to remove product from order",
         "INTERNAL_SERVER_ERROR",
@@ -246,56 +216,14 @@ export const removeProductFromOrderHandler = {
  * GET /orders
  */
 export const getAllOrdersHandler = {
-  handler: async (
-    request: FastifyRequest<{ Querystring: GetAllOrdersQuery }>,
-    reply: FastifyReply,
-  ) => {
+  handler: async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const options = request.query;
-
-      // Get all orders
-      const result = await orderService.getAllOrders(options);
-
-      // Send success response
-      sendSuccess(result, "Orders fetched successfully", reply, 200);
+      // TODO: Implement getAllOrders method in OrderService
+      return sendError("Not implemented yet", "NOT_IMPLEMENTED", reply, 501);
     } catch (error) {
       request.log.error(error);
       return sendError(
         "Failed to fetch orders",
-        "INTERNAL_SERVER_ERROR",
-        reply,
-        500,
-      );
-    }
-  },
-};
-
-/**
- * Handler for deleting an order
- * DELETE /orders/:orderId
- */
-export const deleteOrderHandler = {
-  handler: async (
-    request: FastifyRequest<{ Params: DeleteOrderParams }>,
-    reply: FastifyReply,
-  ) => {
-    try {
-      const { orderId } = request.params;
-
-      // Delete the order
-      const result = await orderService.deleteOrder(orderId);
-
-      // Send success response
-      sendSuccess(result, "Order deleted successfully", reply, 200);
-    } catch (error) {
-      request.log.error(error);
-
-      if (error instanceof Error && error.message.includes("not found")) {
-        return sendError(error.message, "NOT_FOUND", reply, 404);
-      }
-
-      return sendError(
-        "Failed to delete order",
         "INTERNAL_SERVER_ERROR",
         reply,
         500,

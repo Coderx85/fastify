@@ -10,12 +10,12 @@ import {
 import Fastify from "fastify";
 import type { FastifyInstance } from "fastify";
 import type { ISuccessResponse, TErrorResponse } from "@/types/api";
+import { IProduct } from "@/modules/products/product.definition";
 import {
-  IProduct,
-  IProductDTO,
-  IProductInput,
-} from "@/modules/products/product.definition";
-import { productSample } from "@test/samples/products-sample";
+  productSample,
+  rateMapSample,
+  sampleDate,
+} from "@test/samples/products-sample";
 
 // Mock the product service module for api route tests
 vi.mock("@/modules/products/product.service", () => ({
@@ -28,15 +28,12 @@ vi.mock("@/modules/products/product.service", () => ({
   },
 }));
 
-// Mock the productService.createProduct method to return a sample product DTO
-const sampleProductDTO: IProductInput = {
-  id: 1,
+const sampleCreatePayload = {
   name: "Sample Product",
   description: "This is a sample product",
   category: "Books", // Use the first category value for testing
   amount: 19.99,
   currency: "inr",
-  createdAt: new Date(),
 };
 
 // Use original product service implementation for non-mocked methods
@@ -63,20 +60,13 @@ describe("/api/products route", () => {
   describe("POST /api/products create product Successfully", () => {
     it("Code - 201 | CREATE A PRODUCT SUCCESSFULLY", async () => {
       // Arrange
-      const newProductInput: IProductDTO = {
-        id: 1,
-        ...productSample,
-        createdAt: new Date(),
-      };
+      const newProductInput = { ...sampleCreatePayload };
 
       const expectedProduct: IProduct = {
         id: 1,
-        category: productSample.category,
-        name: productSample.name,
-        description: productSample.description,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        rates: { inr: 1659, usd: 19.99 },
+        ...productSample,
+        rates: rateMapSample,
+        updatedAt: null,
       };
 
       // Set up mock return value
@@ -119,7 +109,7 @@ describe("/api/products route", () => {
       const response = await app.inject({
         method: "POST",
         url: "/api/products",
-        payload: sampleProductDTO,
+        payload: sampleCreatePayload,
       });
 
       // Assert
@@ -136,7 +126,7 @@ describe("/api/products route", () => {
     it("POST /api/products should handle errors gracefully", async () => {
       // Arrange
       const invalidProductInput = {
-        ...sampleProductDTO,
+        ...sampleCreatePayload,
         amount: -10, // Invalid negative amount
       };
 
@@ -162,9 +152,9 @@ describe("/api/products route", () => {
       // Arrange
       const expectedProduct: IProduct = {
         ...productSample,
+        updatedAt: null,
         id: 1,
-        createdAt: productSample.createdAt || new Date(),
-        updatedAt: new Date(),
+        createdAt: sampleDate,
         rates: { inr: 1659, usd: 19.99 },
       };
 
@@ -231,40 +221,6 @@ describe("/api/products route", () => {
       assert.equal(body.message, "Failed to fetch product");
     });
   });
-
-  // it("GET /api/products should return products successfully", async () => {
-  //   // Arrange
-  //   const { productService } = await import("@/modules/product.service");
-
-  //   const expectedProducts = [
-  //     {
-  //       ...productSample,
-  //       id: 1,
-  //       createdAt: productSample.createdAt || new Date(),
-  //       updatedAt: new Date(),
-  //       rates: { inr: 1659, usd: 19.99 },
-  //     },
-  //   ];
-
-  //   vi.mocked(productService.getAllProducts).mockResolvedValue(
-  //     expectedProducts,
-  //   );
-
-  //   // Act
-  //   const response = await app.inject({
-  //     method: "GET",
-  //     url: "/api/products",
-  //   });
-
-  //   // Assert
-  //   assert.equal(response.statusCode, 200);
-  //   const body = response.json<ISuccessResponse<{ products: IProduct[] }>>();
-
-  //   assert.ok(body.data);
-  //   assert.ok(Array.isArray(body.data.products));
-  //   assert.equal(body.data.products.length, expectedProducts.length);
-  //   assert.deepEqual(body.data.products[0], expectedProducts[0]);
-  // });
 
   afterAll(async () => {
     await app.close();
