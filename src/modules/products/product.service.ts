@@ -1,8 +1,5 @@
 import { db } from "@/db";
 import { productsTable as product, productsPriceTables } from "@/db/schema";
-import { config } from "@/lib/config";
-// import { CreateProductBody, UpdateProductBody } from "@/schema/product.schema";
-import {} from "@/schema/product.schema";
 import {
   currencyType,
   IProduct,
@@ -11,74 +8,52 @@ import {
   IProductService,
   RateMap,
 } from "@/modules/products/product.definition";
+import { currencyService } from "@/modules/currency/currency.service";
 import { eq, and } from "drizzle-orm";
 
-class ProductService implements IProductService {
+export class ProductService implements IProductService {
+  /**
+   * Convert USD to INR using CurrencyService
+   */
   private async convertToIndianRupees(basePrice: number): Promise<number> {
-    const inr = "INR" as const;
-    const usd = "USD" as const;
-    let data: any;
-    try {
-      const res = await fetch(
-        `https://v6.exchangerate-api.com/v6/${config.EXCHANGE_API}/pair/${inr}/${usd}/${basePrice}`,
-      );
-      data = await res.json();
-      if (!res.ok || !data || data.result !== "success") {
-        throw new Error(
-          `Exchange API returned failure: ${data?.error_type ?? res.status}`,
-        );
-      }
-    } catch (err) {
-      throw new Error("Failed to fetch INR→USD exchange rate", {
-        cause: { code: "EXCHANGE_RATE_FAILED", original: err },
-      });
-    }
-
-    if (
-      !data.conversion_result ||
-      typeof data.conversion_result !== "number" ||
-      data.conversion_result <= 0
-    ) {
-      throw new Error("Invalid conversion result from exchange API", {
-        cause: { code: "EXCHANGE_RATE_FAILED" },
-      });
-    }
-
-    return data.conversion_result;
+    const result = await currencyService.convertCurrency(
+      basePrice,
+      "usd",
+      "inr",
+    );
+    return result.convertedAmount;
   }
 
+  /**
+   * Convert INR to USD using CurrencyService
+   */
   private async convertToDollars(basePrice: number): Promise<number> {
-    const inr = "INR" as const;
-    const usd = "USD" as const;
-    let data: any;
-    try {
-      const res = await fetch(
-        `https://v6.exchangerate-api.com/v6/${config.EXCHANGE_API}/pair/${usd}/${inr}/${basePrice}`,
-      );
-      data = await res.json();
-      if (!res.ok || !data || data.result !== "success") {
-        throw new Error(
-          `Exchange API returned failure: ${data?.error_type ?? res.status}`,
-        );
-      }
-    } catch (err) {
-      throw new Error("Failed to fetch USD→INR exchange rate", {
-        cause: { code: "EXCHANGE_RATE_FAILED", original: err },
-      });
-    }
-
-    return basePrice * (data.conversion_rate || 0.0125);
+    const result = await currencyService.convertCurrency(
+      basePrice,
+      "inr",
+      "usd",
+    );
+    return result.convertedAmount;
   }
 
-  private async addPriceToProduct({
-    productId,
-    priceAmount,
-    currencyType,
-  }: {
-    productId: number;
-    priceAmount: number;
-    currencyType: currencyType;
-  }): Promise<RateMap> {
+  /**
+   * Helper that inserts prices for a product, scoped to the provided
+   * transaction object. It was previously using the global `db` instance
+   * which caused an error when called from inside a transaction because
+   * those queries would execute outside of the transactional context.
+   */
+  private async addPriceToProduct(
+    tx: any,
+    {
+      productId,
+      priceAmount,
+      currencyType,
+    }: {
+      productId: number;
+      priceAmount: number;
+      currencyType: currencyType;
+    },
+  ): Promise<RateMap> {
     let rates: RateMap = {
       inr: 0,
       usd: 0,
@@ -90,12 +65,14 @@ class ProductService implements IProductService {
       currencyType,
     };
 
-    await db.insert(productsPriceTables).values(priceRecord);
+    // use the transaction instead of the global db
+    await tx.insert(productsPriceTables).values(priceRecord);
     rates[currencyType] = priceAmount;
+
     // Add related price for the other currency as well
     if (currencyType === "usd") {
       const inrAmount = await this.convertToIndianRupees(priceAmount);
-      await db.insert(productsPriceTables).values({
+      await tx.insert(productsPriceTables).values({
         productId,
         priceAmount: inrAmount,
         currencyType: "inr",
@@ -103,7 +80,7 @@ class ProductService implements IProductService {
       rates.inr = inrAmount;
     } else {
       const usdAmount = await this.convertToDollars(priceAmount);
-      await db.insert(productsPriceTables).values({
+      await tx.insert(productsPriceTables).values({
         productId,
         priceAmount: usdAmount,
         currencyType: "usd",
@@ -141,7 +118,7 @@ class ProductService implements IProductService {
           .returning();
 
         // Insert currency prices — runs inside the same transaction so any
-        const rates = await this.addPriceToProduct({
+        const rates = await this.addPriceToProduct(tx, {
           productId: createdProduct.id,
           priceAmount: data.amount,
           currencyType: data.currency,

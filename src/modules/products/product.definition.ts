@@ -3,6 +3,7 @@ import {
   createProductResultSchema,
   createProductInputSchema,
 } from "@/schema/product.schema";
+import { FastifyReply, FastifyRequest } from "fastify";
 import z from "zod";
 
 export type RateMap = Record<currencyType, number>;
@@ -10,16 +11,6 @@ export type RateMap = Record<currencyType, number>;
 type createProductInput = z.infer<typeof createProductInputSchema>;
 
 export interface IProductInput extends createProductInput {}
-
-const p: IProductInput = {
-  name: "Sample Product",
-  description: "This is a sample product",
-  category: "Books",
-  amount: 19.99,
-  currency: "inr",
-  createdAt: new Date(),
-  id: 1,
-};
 
 export type CreateProductResult = z.infer<typeof createProductResultSchema>;
 
@@ -50,4 +41,14 @@ export interface IProductService {
     id: number,
     input: Partial<IProductInput>,
   ): Promise<IProduct | null>;
+}
+
+export interface ProductsController {
+  // Define controller methods here, e.g.:
+  createProduct(handler: {
+    request: FastifyRequest<{
+      Body: IProductInput;
+    }>;
+    reply: FastifyReply;
+  }): Promise<void>;
 }
