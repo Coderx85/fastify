@@ -39,5 +39,13 @@ export const getUserByEmailSchema = {
   }),
 };
 
-// Backward compatibility
-export const userIdSchema = getUserSchema.params;
+// GET - /api/users/:id?orderId=123s
+
+export const getOrderByUserIdSchema = {
+  params: z.object({
+    id: z.string().transform((val) => parseInt(val, 10)),
+  }),
+  querystring: z.object({
+    orderId: z.string().transform((val) => parseInt(val, 10)),
+  }),
+};

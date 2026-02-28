@@ -1,9 +1,12 @@
 import { z } from "zod";
 import {
-  orders,
-  orderProduct,
+  ordersTable as orders,
+  orderProductTable as orderProduct,
   orderStatusEnum,
   paymentMethodEnum,
+  orderInsertSchema,
+  currencyEnum,
+  addressInsertSchema,
 } from "@/db/schema";
 import { createSelectSchema } from "drizzle-zod";
 import { successResponseSchema } from "@/types/api";
@@ -23,12 +26,10 @@ export const orderProductInputSchema = z.object({
 
 // Create order request body
 export const createOrderBodySchema = z.object({
-  // userId is no longer required in the request payload; it will be
-  // injected server‑side from the authentication token when available.
-  userId: z.number().int().positive().optional(),
-  shippingAddress: z.string().optional(),
+  userId: z.number().int().positive(),
+  shippingAddress: z.string(),
   paymentMethod: z.enum(paymentMethodEnum.enumValues),
-  notes: z.string().optional(),
+  notes: z.string(),
   products: z
     .array(orderProductInputSchema)
     .min(1, "At least one product is required"),
@@ -163,3 +164,57 @@ export type GetAllOrdersQuery = z.infer<typeof getAllOrdersSchema.querystring>;
 export type AllOrdersData = z.infer<typeof allOrdersDataSchema>;
 export type DeleteOrderParams = z.infer<typeof deleteOrderSchema.params>;
 export type DeleteOrderResponse = z.infer<typeof deleteOrderResponseSchema>;
+
+///// ========== Additional Types for Service Layer ==========
+
+const currencyValues = z.enum(currencyEnum.enumValues);
+
+const addressInput = addressInsertSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  userId: true,
+});
+
+const orderItemInputSchema = z.object({
+  productId: z.number().int().positive(),
+  quantity: z.number().int().positive().default(1),
+});
+
+const createOrderInputBaseSchema = orderInsertSchema
+  .pick({
+    userId: true,
+    paymentMethod: true,
+    notes: true,
+  })
+  .extend({
+    billingAddress: addressInput,
+    shippingAddress: addressInput,
+    products: z
+      .array(orderItemInputSchema)
+      .min(1, "At least one product is required"),
+  });
+
+const createOrderOutputBaseSchema = orderInsertSchema
+  .omit({
+    shippingAddressId: true,
+    billingAddressId: true,
+  })
+  .extend({
+    shippingAddress: addressInput,
+    billingAddress: addressInput,
+    items: z.array(orderItemInputSchema),
+    pricing: z.object({
+      originalAmount: z.number().nonnegative(),
+      convertedAmount: z.number().nonnegative(),
+      currency: currencyValues,
+      exchangeRate: z.number().positive(),
+    }),
+  });
+
+export const createOrderInputSchema = {
+  body: createOrderInputBaseSchema,
+  response: {
+    201: successResponseSchema(createOrderOutputBaseSchema),
+  },
+};

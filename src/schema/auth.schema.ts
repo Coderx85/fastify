@@ -17,11 +17,13 @@ export const loginSchema = {
     .refine((v) => !!v.email, {
       message: "Email must be provided",
       path: ["email"],
+    })
+    .refine((v) => !!v.password, {
+      message: "Password must be provided",
+      path: ["password"],
     }),
   response: {
     200: successResponseSchema(loginDTO),
-    401: errorResponseSchema("UNAUTHORIZED"),
-    404: errorResponseSchema("USER_NOT_FOUND"),
   },
 };
 
@@ -34,8 +36,6 @@ export const registerSchema = {
   }),
   response: {
     201: successResponseSchema(loginDTO),
-    400: errorResponseSchema("VALIDATION_ERROR"),
-    409: errorResponseSchema("USER_ALREADY_EXISTS"),
   },
 };
 
