@@ -4,12 +4,12 @@ import { eq } from "drizzle-orm";
 
 import {
   createUserSchema,
-  getUserSchema,
+  // getUserSchema,
   updateUserSchema,
   deleteUserSchema,
   getUserByEmailSchema,
 } from "@/schema/user.schema";
-import { users } from "@/db/schema";
+import { usersTable as users } from "@/db/schema";
 import { hashPassword } from "@/lib/hash";
 import { sendError, sendSuccess } from "@/lib/response";
 import { db } from "@/db";
@@ -52,33 +52,33 @@ export default async function usersRoute(fastify: FastifyInstance) {
     },
   );
 
-  // GET /api/users/:id
-  fastify.withTypeProvider<ZodTypeProvider>().get(
-    "/:id",
-    {
-      schema: getUserSchema,
-    },
-    async (request, reply) => {
-      const { id } = request.params;
+  // // GET /api/users/:id
+  // fastify.withTypeProvider<ZodTypeProvider>().get(
+  //   "/:id",
+  //   {
+  //     schema: getUserSchema,
+  //   },
+  //   async (request, reply) => {
+  //     const { id } = request.params;
 
-      const foundUsers = await db
-        .select({
-          id: users.id,
-          name: users.name,
-          email: users.email,
-        })
-        .from(users)
-        .where(eq(users.id, id));
+  //     const foundUsers = await db
+  //       .select({
+  //         id: users.id,
+  //         name: users.name,
+  //         email: users.email,
+  //       })
+  //       .from(users)
+  //       .where(eq(users.id, id));
 
-      const user = foundUsers[0];
+  //     const user = foundUsers[0];
 
-      if (!user) {
-        return sendError("User not found", "NOT_FOUND", reply, 404);
-      }
+  //     if (!user) {
+  //       return sendError("User not found", "NOT_FOUND", reply, 404);
+  //     }
 
-      sendSuccess(user, "User retrieved successfully", reply, 200);
-    },
-  );
+  //     sendSuccess(user, "User retrieved successfully", reply, 200);
+  //   },
+  // );
 
   // POST /api/users
   fastify.withTypeProvider<ZodTypeProvider>().post(
@@ -111,6 +111,7 @@ export default async function usersRoute(fastify: FastifyInstance) {
           name,
           email,
           password: hashedPassword,
+          contact: "wewewe", // Placeholder, adjust as needed
         })
         .returning({
           id: users.id,

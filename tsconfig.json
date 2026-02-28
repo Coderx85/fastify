@@ -33,7 +33,8 @@
 
     // Enable source map generation
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@test/*": ["./test/*"]
     }
   },
   "include": ["src", "api/_serverless.ts"],
