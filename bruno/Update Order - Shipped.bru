@@ -1,0 +1,27 @@
+meta {
+  name: Update Order - Status Shipped
+  type: http
+  seq: 13.1
+}
+
+put {
+  url: {{host}}/api/order/1
+  body: json
+  auth: inherit
+}
+
+params:path {
+  orderId: 1
+}
+
+body:json {
+  {
+    "status": "shipped",
+    "notes": "Order has been dispatched from warehouse"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

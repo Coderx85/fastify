@@ -1,13 +1,17 @@
 meta {
-  name: GET Products
+  name: Get Order By ID
   type: http
   seq: 12
 }
 
 get {
-  url: {{host}}/api/products
+  url: {{host}}/api/order/1
   body: none
   auth: inherit
+}
+
+params:path {
+  orderId: 1
 }
 
 settings {

@@ -1,0 +1,21 @@
+meta {
+  name: Get Orders - With Pagination
+  type: http
+  seq: 11.3
+}
+
+get {
+  url: {{host}}/api/order
+  body: none
+  auth: inherit
+}
+
+params:query {
+  limit: 5
+  offset: 0
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

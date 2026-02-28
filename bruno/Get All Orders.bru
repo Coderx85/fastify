@@ -1,0 +1,23 @@
+meta {
+  name: Get All Orders
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{host}}/api/order
+  body: none
+  auth: inherit
+}
+
+params:query {
+  userId: 1
+  status: processing
+  limit: 10
+  offset: 0
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

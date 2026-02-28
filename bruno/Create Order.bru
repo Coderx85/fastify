@@ -1,33 +1,52 @@
 meta {
   name: Create Order
   type: http
-  seq: 5
+  seq: 10
 }
 
 post {
-  url: {{host}}/order?userId=6&shippingAddress="users?email=abpriyanshu007@gmail.com"&paymentMethod="polar"&notes="aedrara"&products=4325345
+  url: {{host}}/api/order
   body: json
   auth: inherit
 }
 
-params:query {
-  userId: 6
-  shippingAddress: "users?email=abpriyanshu007@gmail.com"
-  paymentMethod: "polar"
-  notes: "aedrara"
-  products: 4325345
-}
-
 body:json {
   {
-    "userId": 6,
-    "shippingAddress": "userId",
-    "paymentMethod": "UPI",
+    "userId": 1,
+    "paymentMethod": "polar",
+    "shippingAddress": {
+      "userId": 1,
+      "addressType": "shipping",
+      "isDefault": true,
+      "streetAddress1": "123 Main St",
+      "streetAddress2": "Apt 4B",
+      "city": "Anytown",
+      "state": "CA",
+      "postalCode": "12345",
+      "country": "USA"
+    },
+    "billingAddress": {
+      "userId": 1,
+      "addressType": "billing",
+      "isDefault": false,
+      "streetAddress1": "456 Billing Ave",
+      "streetAddress2": "Suite 200",
+      "city": "Billtown",
+      "state": "NY",
+      "postalCode": "54321",
+      "country": "USA"
+    },
     "products": [
-      { "productId": 101, "quantity": 2 },
-      { "productId": 103, "quantity": 1 }
+      {
+        "productId": 1,
+        "quantity": 2
+      },
+      {
+        "productId": 2,
+        "quantity": 1
+      }
     ],
-    "notes": "First call"
+    "notes": "Please deliver between 9 AM and 5 PM"
   }
 }
 

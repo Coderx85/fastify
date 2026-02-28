@@ -1,7 +1,7 @@
 meta {
-  name: Add Product
+  name: POST API Product Conflict
   type: http
-  seq: 12
+  seq: 24
 }
 
 post {
@@ -12,10 +12,10 @@ post {
 
 body:json {
   {
-    "name": "ASUS Zenbook v12",
-    "description": "Asus latest zenbook.",
-    "amount": 234000,
-    "category": "Electronics",
+    "name": "Existing Product",
+    "description": "Attempt create duplicate",
+    "category": "Books",
+    "amount": 9.99,
     "currency": "inr"
   }
 }

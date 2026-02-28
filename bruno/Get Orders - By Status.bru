@@ -1,13 +1,17 @@
 meta {
-  name: GET Products
+  name: Get Orders - By Status
   type: http
-  seq: 12
+  seq: 11.2
 }
 
 get {
-  url: {{host}}/api/products
+  url: {{host}}/api/order
   body: none
   auth: inherit
+}
+
+params:query {
+  status: shipped
 }
 
 settings {

@@ -1,0 +1,34 @@
+meta {
+  name: Create Order - Error Missing Products
+  type: http
+  seq: 10.5
+}
+
+post {
+  url: {{host}}/api/order
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "userId": 1,
+    "paymentMethod": "polar",
+    "shippingAddress": {
+      "userId": 1,
+      "addressType": "shipping",
+      "isDefault": true,
+      "streetAddress1": "123 Main St",
+      "city": "Anytown",
+      "state": "CA",
+      "postalCode": "12345",
+      "country": "USA"
+    },
+    "products": []
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

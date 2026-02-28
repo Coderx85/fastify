@@ -1,0 +1,60 @@
+meta {
+  name: Create Order - Razorpay (INR)
+  type: http
+  seq: 10.1
+}
+
+post {
+  url: {{host}}/api/order
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "userId": 2,
+    "paymentMethod": "razorpay",
+    "shippingAddress": {
+      "userId": 2,
+      "addressType": "shipping",
+      "isDefault": true,
+      "streetAddress1": "456 MG Road",
+      "streetAddress2": "Floor 5",
+      "city": "Bangalore",
+      "state": "KA",
+      "postalCode": "560001",
+      "country": "India"
+    },
+    "billingAddress": {
+      "userId": 2,
+      "addressType": "billing",
+      "isDefault": false,
+      "streetAddress1": "789 Brigade Road",
+      "streetAddress2": "Suite 100",
+      "city": "Bangalore",
+      "state": "KA",
+      "postalCode": "560025",
+      "country": "India"
+    },
+    "products": [
+      {
+        "productId": 1,
+        "quantity": 1
+      },
+      {
+        "productId": 3,
+        "quantity": 3
+      },
+      {
+        "productId": 5,
+        "quantity": 2
+      }
+    ],
+    "notes": "Delivery in Bangalore area only"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

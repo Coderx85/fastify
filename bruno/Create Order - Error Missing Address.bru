@@ -1,0 +1,29 @@
+meta {
+  name: Create Order - Error Missing Address
+  type: http
+  seq: 10.6
+}
+
+post {
+  url: {{host}}/api/order
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "userId": 1,
+    "paymentMethod": "polar",
+    "products": [
+      {
+        "productId": 1,
+        "quantity": 1
+      }
+    ]
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

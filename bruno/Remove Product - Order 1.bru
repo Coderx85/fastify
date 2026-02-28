@@ -1,0 +1,21 @@
+meta {
+  name: Remove Product - From Order 1
+  type: http
+  seq: 15.1
+}
+
+delete {
+  url: {{host}}/api/order/1/products/3
+  body: none
+  auth: inherit
+}
+
+params:path {
+  orderId: 1
+  productId: 3
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
