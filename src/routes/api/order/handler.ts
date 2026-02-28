@@ -88,7 +88,7 @@ const orderService = new OrderService();
 // };
 
 class OrderController implements IOrderController {
-  async createOrder(
+  async createOrderHandler(
     request: FastifyRequest<{ Body: IOrderInput }>,
     reply: FastifyReply,
   ): Promise<void> {
@@ -103,7 +103,7 @@ class OrderController implements IOrderController {
       }
 
       // Call service with userId and data
-      const result = await orderService.createOrder(userId, orderData);
+      const result = await orderService.createOrder(orderData, userId);
 
       sendSuccess(result, "Order created successfully", reply, 201);
     } catch (error) {

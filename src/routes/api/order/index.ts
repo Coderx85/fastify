@@ -16,7 +16,6 @@ import {
   addProductToOrderHandler,
   removeProductFromOrderHandler,
   getAllOrdersHandler,
-  OrderController,
 } from "./handler";
 
 /**
@@ -35,7 +34,7 @@ export default async function ordersRoute(fastify: FastifyInstance) {
   // POST /api/order
   fastify.withTypeProvider<ZodTypeProvider>().post("/", {
     schema: createOrderInputSchema,
-    handler: OrderController.prototype.createOrder,
+    handler: orderController.createOrderHandler,
   });
 
   // Get all orders

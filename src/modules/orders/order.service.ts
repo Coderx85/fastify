@@ -1,4 +1,4 @@
-import { db } from "@/db";
+import { db, dbPool } from "@/db";
 import {
   ordersTable,
   addressesTable,
@@ -26,7 +26,7 @@ import {
   type PaymentMethod,
   type CurrencyType,
 } from "@/modules/currency/currency.service";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 
 export class OrderService implements IOrderService {
   private productService: ProductService;
@@ -108,11 +108,11 @@ export class OrderService implements IOrderService {
     const products = await db
       .select()
       .from(productsTable)
-      .where((table) => {
-        return productIds.length === 1
-          ? eq(table.id, productIds[0])
-          : eq(table.id, productIds[0]);
-      });
+      .where(
+        productIds.length === 1
+          ? eq(productsTable.id, productIds[0])
+          : inArray(productsTable.id, productIds),
+      );
 
     const productMap: Record<number, any> = {};
     for (const product of products) {
@@ -158,11 +158,11 @@ export class OrderService implements IOrderService {
   /**
    * Create order with products and addresses
    */
-  async createOrder(userId: number, data: IOrderInput): Promise<IOrderResult> {
+  async createOrder(data: IOrderInput, userId: number): Promise<IOrderResult> {
     // Validate input
     this.validateOrderInput(data);
 
-    return await db.transaction(async (tx) => {
+    return await dbPool.transaction(async (tx) => {
       // Determine order currency based on payment method
       const orderCurrency = currencyService.getCurrencyByPaymentMethod(
         data.paymentMethod as PaymentMethod,
@@ -333,6 +333,69 @@ export class OrderService implements IOrderService {
         pricing,
       };
     });
+  }
+
+  async getOrderById(
+    orderId: number,
+    userId: number,
+  ): Promise<IOrderResult | null> {
+    try {
+      const [orderRecord] = await db
+        .select()
+        .from(ordersTable)
+        .where(and(eq(ordersTable.id, orderId), eq(ordersTable.userId, userId)))
+        .limit(1);
+
+      if (!orderRecord) {
+        return null;
+      }
+
+      // Fetch order items
+      const orderItems = await db
+        .select()
+        .from(orderProductTable)
+        .where(eq(orderProductTable.orderId, orderId));
+
+      // Fetch addresses
+      const [shippingAddr] = await db
+        .select()
+        .from(addressesTable)
+        .where(eq(addressesTable.id, orderRecord.shippingAddressId))
+        .limit(1);
+
+      const [billingAddr] = await db
+        .select()
+        .from(addressesTable)
+        .where(eq(addressesTable.id, orderRecord.billingAddressId))
+        .limit(1);
+
+      // Calculate pricing information
+      const pricing: IOrderPricing = {
+        originalAmount: orderRecord.totalAmount, // Assuming this is in the correct currency
+        convertedAmount: orderRecord.totalAmount, // For simplicity, using the same value
+        currency: orderRecord.totalAmountCurrency as DefinitionCurrency,
+        exchangeRate: 1, // Exchange rate would need to be stored in the order for accurate conversion
+      };
+
+      return {
+        ...(orderRecord as TOrder),
+        shippingAddress: shippingAddr as IAddressOutput,
+        billingAddress: billingAddr as IAddressOutput,
+        items: orderItems.map((item) => ({
+          id: item.id,
+          orderId: item.orderId,
+          productId: item.productId,
+          quantity: item.quantity,
+          priceAtOrder: item.priceAtOrder / 100, // Convert back to normal units
+          createdAt: item.createdAt,
+        })),
+        pricing,
+      };
+    } catch (error) {
+      throw new Error("Failed to fetch order", {
+        cause: error,
+      });
+    }
   }
 }
 

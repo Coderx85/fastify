@@ -75,8 +75,8 @@ export interface IOrderWithProducts {
 
 // ========== Service Interface ==========
 export interface IOrderService {
-  createOrder(userId: number, data: IOrderCreateInput): Promise<IOrderResult>;
-  // getOrderById(orderId: number, userId: number): Promise<IOrderResult | null>;
+  createOrder(data: IOrderCreateInput, userId: number): Promise<IOrderResult>;
+  getOrderById(orderId: number, userId: number): Promise<IOrderResult | null>;
   // getOrdersByUserId(userId: number): Promise<IOrderResult[]>;
   // getAllOrders(options?: {
   //   userId?: number;
@@ -88,7 +88,7 @@ export interface IOrderService {
 
 // ========== Controller Interface ==========
 export interface IOrderController {
-  createOrder(
+  createOrderHandler(
     request: FastifyRequest<{ Body: IOrderInput }>,
     reply: FastifyReply,
   ): Promise<void>;
@@ -120,81 +120,3 @@ export class InsufficientAddressError extends Error {
     this.name = "InsufficientAddressError";
   }
 }
-
-// ========== Example Data ==========
-export const addressInputExample: IAddressInput = {
-  userId: 1,
-  addressType: "shipping",
-  isDefault: true,
-  streetAddress1: "123 Main St",
-  streetAddress2: "Apt 4B",
-  city: "Anytown",
-  state: "CA",
-  postalCode: "12345",
-  country: "USA",
-};
-
-export const orderCreateInputExample: IOrderCreateInput = {
-  userId: 1,
-  paymentMethod: "polar",
-  shippingAddress: addressInputExample,
-  billingAddress: addressInputExample,
-  products: [
-    {
-      productId: 1,
-      quantity: 2,
-    },
-    {
-      productId: 2,
-      quantity: 1,
-    },
-  ],
-  notes: "Please deliver between 9 AM and 5 PM.",
-};
-
-export const addressOutputExample: IAddressOutput = {
-  id: 1,
-  userId: 1,
-  addressType: "shipping",
-  isDefault: true,
-  streetAddress1: "123 Main St",
-  streetAddress2: "Apt 4B",
-  city: "Anytown",
-  state: "CA",
-  postalCode: "12345",
-  country: "USA",
-  createdAt: new Date(),
-  updatedAt: null,
-};
-
-export const orderResultExample: IOrderResult = {
-  id: 1,
-  userId: 1,
-  status: "processing",
-  createdAt: new Date(),
-  billingAddressId: 2,
-  shippingAddressId: 1,
-  paymentMethod: "polar",
-  totalAmount: 10000,
-  totalAmountCurrency: "inr",
-  updatedAt: null,
-  notes: "Please deliver between 9 AM and 5 PM.",
-  shippingAddress: addressOutputExample,
-  billingAddress: addressOutputExample,
-  items: [
-    {
-      id: 1,
-      orderId: 1,
-      productId: 1,
-      quantity: 2,
-      priceAtOrder: 5000,
-      createdAt: new Date(),
-    },
-  ],
-  pricing: {
-    originalAmount: 10000,
-    convertedAmount: 120,
-    currency: "usd",
-    exchangeRate: 0.012,
-  },
-};
