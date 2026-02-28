@@ -1,9 +1,9 @@
 import { afterAll, assert, beforeAll, describe, it, vi } from "vitest";
 import Fastify, { FastifyInstance } from "fastify";
 import { ISuccessResponse, TErrorResponse } from "@/types/api";
-import { userSample as newUser } from "@test/user-sample";
+import { userSample as newUser } from "@test/samples/users-sample";
 import { IAuthUserDTO } from "@/dtos/auth.dto";
-import { CreateUserInput } from "@/types/user.definition";
+import { CreateUserInput } from "@/modules/users/user.definition";
 
 type SignUpSuccessResponse = ISuccessResponse<IAuthUserDTO>;
 type SignUpErrorResponse = TErrorResponse;

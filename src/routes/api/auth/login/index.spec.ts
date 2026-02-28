@@ -3,7 +3,7 @@ import { describe, it, beforeAll, afterAll, assert, vi } from "vitest";
 import Fastify from "fastify";
 import type { FastifyInstance } from "fastify";
 import { hashPassword } from "@/lib/hash";
-import { IUser } from "@/types/user.definition";
+import { IUser } from "@/modules/users/user.definition";
 import type { ISuccessResponse, TErrorResponse } from "@/types/api";
 
 const testUser: IUser = {
@@ -13,6 +13,7 @@ const testUser: IUser = {
   password: hashPassword("password123"),
   contact: "1234567890",
   createdAt: new Date(),
+  updatedAt: new Date(),
 };
 
 type LoginUsingEmailInput = {

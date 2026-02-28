@@ -1,7 +1,11 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import { RegisterBody, TAuthUserDTO } from "@/schema/auth.schema";
 import { sendError, sendSuccess, hashPassword } from "@/lib";
-import { userService } from "@/modules/user.service";
+import {
+  userService,
+  DuplicateUserError,
+  DatabaseError,
+} from "@/modules/users/user.service";
 import { generateAuthToken } from "@/lib/token";
 
 export const registerRouteHandler = {
@@ -22,11 +26,8 @@ export const registerRouteHandler = {
         email,
         password: hashedPassword,
         contact,
+        createdAt: new Date(),
       });
-
-      if (!newUser) {
-        throw new Error("User creation failed");
-      }
 
       const token = generateAuthToken({ id: newUser.id, email: newUser.email });
 
@@ -42,9 +43,36 @@ export const registerRouteHandler = {
       // Return success with user data
       return sendSuccess(userDTO, "User registered successfully", reply, 201);
     } catch (error: unknown) {
-      console.error("Registration error:", error);
+      // Handle duplicate user error
+      if (error instanceof DuplicateUserError) {
+        return sendError(error.message, "CONFLICT", reply, 409);
+      }
+
+      // Handle other database errors
+      if (error instanceof DatabaseError) {
+        console.error("Database error during registration:", error);
+        return sendError(
+          "An error occurred while creating your account. Please try again.",
+          "INTERNAL_SERVER_ERROR",
+          reply,
+          500,
+        );
+      }
+
+      // Handle unexpected errors
+      if (error instanceof Error) {
+        console.error("Registration error:", error.message);
+        return sendError(
+          error.message || "Failed to register user",
+          "INTERNAL_SERVER_ERROR",
+          reply,
+          500,
+        );
+      }
+
+      console.error("Unknown registration error:", error);
       return sendError(
-        "Internal server error",
+        "An unexpected error occurred during registration",
         "INTERNAL_SERVER_ERROR",
         reply,
         500,
