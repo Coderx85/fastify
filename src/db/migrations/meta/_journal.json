@@ -22,6 +22,20 @@
       "when": 1772043238860,
       "tag": "0002_worthless_bishop",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1772079594359,
+      "tag": "0003_round_sally_floyd",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1772274033284,
+      "tag": "0004_nostalgic_the_liberteens",
+      "breakpoints": true
     }
   ]
 }

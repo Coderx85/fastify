@@ -1,30 +1,4 @@
-type Config = {
-  PORT: number;
-  DATABASE_URL: string;
-  ENVIRONMENT: "development" | "production" | "test";
-
-  // Polar.sh Configuration
-  POLAR_ACCESS_TOKEN: string;
-  POLAR_ORGANIZATION_ID: string;
-  POLAR_WEBHOOK_SECRET: string;
-  POLAR_SERVER: "sandbox" | "production";
-  POLAR_PRODUCT_ID: string;
-
-  // Razorpay Configuration
-  RAZORPAY_KEY_ID: string;
-  RAZORPAY_KEY_SECRET: string;
-  RAZORPAY_WEBHOOK_SECRET: string;
-  RAZORPAY_CURRENCY: string;
-
-  // Checkout URLs
-  SUCCESS_URL: string;
-  RETURN_URL: string;
-
-  // JWT Configuration
-  JWT_SECRET: string;
-};
-
-export const config: Config = {
+export const config = {
   PORT: process.env.PORT ? Number(process.env.PORT) : 3000,
   DATABASE_URL: process.env.DATABASE_URL || "",
   ENVIRONMENT:
@@ -53,4 +27,7 @@ export const config: Config = {
 
   // JWT Configuration - CHANGE THIS IN PRODUCTION
   JWT_SECRET: process.env.JWT_SECRET || "your-super-secret-and-long-jwt-secret",
+
+  // Exchange API
+  EXCHANGE_API: process.env.EXCHANGE_API || "",
 };

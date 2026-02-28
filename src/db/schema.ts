@@ -21,6 +21,7 @@ export const categoryEnum = pgEnum("category", [
 
 export const categoryEnumValues = categoryEnum.enumValues;
 export type TCategoryEnumValues = (typeof categoryEnumValues)[number];
+export type AddressType = (typeof addressTypeEnum.enumValues)[number];
 
 export const subscriptionStatusEnum = pgEnum("subscription_status", [
   "active",
@@ -49,16 +50,21 @@ export const paymentMethodEnum = pgEnum("payment_method", [
 export const currencyEnum = pgEnum("currency", ["usd", "inr"]);
 export const addressTypeEnum = pgEnum("address_type", ["shipping", "billing"]);
 
-export const users = pgTable("users", {
+const timestamps = {
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at"),
+};
+
+export const usersTable = pgTable("userstable", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
   email: varchar("email", { length: 255 }).notNull().unique(),
   password: varchar("password", { length: 255 }).notNull(),
   contact: numeric("contact", { precision: 10, scale: 0 }).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  ...timestamps,
 });
 
-export const addresses = pgTable(
+export const addressesTable = pgTable(
   "addresses",
   {
     id: serial("id").primaryKey(),
@@ -71,27 +77,25 @@ export const addresses = pgTable(
     addressType: addressTypeEnum("address_type").notNull(),
     isDefault: boolean("is_default").notNull().default(false),
     userId: integer("user_id")
-      .references(() => users.id, { onDelete: "cascade" })
+      .references(() => usersTable.id, { onDelete: "cascade" })
       .notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    ...timestamps,
   },
   (table) => [index("addresses_user_id_idx").on(table.userId)],
 );
 
-export const payments = pgTable(
+export const paymentsTable = pgTable(
   "payments",
   {
     id: varchar("id").primaryKey(), // from polar
     orderId: integer("order_id")
-      .references(() => orders.id, { onDelete: "cascade" })
+      .references(() => ordersTable.id, { onDelete: "cascade" })
       .notNull(),
     amount: integer("amount").notNull(),
     currency: currencyEnum("currency").notNull(),
     status: paymentStatusEnum("status").notNull().default("pending"),
     paymentMethod: paymentMethodEnum("payment_method").notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    ...timestamps,
   },
   (table) => [
     index("payments_order_id_idx").on(table.orderId),
@@ -99,64 +103,60 @@ export const payments = pgTable(
   ],
 );
 
-export const product = pgTable(
-  "product",
+export const productsTable = pgTable(
+  "productstable",
   {
-    id: serial("id"),
-    productId: serial("product_id").primaryKey(),
+    id: serial("product_id").primaryKey(),
     name: varchar("name", { length: 255 }).notNull(),
     description: text("description").notNull(),
-    price: integer("price").notNull(), // store price in cents and convert to rupees and dollar in the application layer
     category: categoryEnum("category").notNull(),
+    ...timestamps,
   },
   (table) => [
     index("index").on(table.name),
-    index("product_id_index_column").on(table.productId),
+    index("product_id_index_column").on(table.id),
   ],
 );
 
-export const orders = pgTable(
+export const ordersTable = pgTable(
   "orders",
   {
     id: serial("id").primaryKey(),
     userId: integer("user_id")
-      .references(() => users.id, { onDelete: "cascade" })
+      .references(() => usersTable.id, { onDelete: "cascade" })
       .notNull(),
     totalAmount: integer("total_amount").notNull().default(0),
     totalAmountCurrency: currencyEnum("total_amount_currency").notNull(), // New column
     status: orderStatusEnum("status").notNull().default("processing"),
     billingAddressId: integer("billing_address_id")
-      .references(() => addresses.id, { onDelete: "set null" })
+      .references(() => addressesTable.id, { onDelete: "set null" })
       .notNull(),
     shippingAddressId: integer("shipping_address_id")
-      .references(() => addresses.id, { onDelete: "set null" })
+      .references(() => addressesTable.id, { onDelete: "set null" })
       .notNull(),
     paymentMethod: paymentMethodEnum("payment_method")
       .notNull()
       .default("polar"),
     notes: text("notes"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    ...timestamps,
   },
   (table) => [
     index("orders_user_id_idx").on(table.userId),
     index("orders_status_idx").on(table.status),
-    index("orders_created_at_idx").on(table.createdAt),
   ],
 );
 
-// Currency table to store product currencies within in Rupees and Dollars
-export const productCurrencyPrices = pgTable(
-  "product_currency_prices",
+// Currency table to store productstable currencies within in Rupees and Dollars
+export const productsPriceTables = pgTable(
+  "products_price",
   {
     id: serial("id").primaryKey(),
     productId: integer("product_id")
-      .references(() => product.productId, { onDelete: "cascade" })
+      .references(() => productsTable.id, { onDelete: "cascade" })
       .notNull(),
     priceAmount: integer("price_amount").notNull(),
     currencyType: currencyEnum("currency_type").notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    ...timestamps,
   },
   (table) => [
     index("product_currency_prices_product_id_idx").on(table.productId),
@@ -164,19 +164,19 @@ export const productCurrencyPrices = pgTable(
   ],
 );
 
-export const orderProduct = pgTable(
+export const orderProductTable = pgTable(
   "order_product",
   {
     id: serial("id").primaryKey(),
     orderId: integer("order_id")
-      .references(() => orders.id, { onDelete: "cascade" })
+      .references(() => ordersTable.id, { onDelete: "cascade" })
       .notNull(),
     productId: integer("product_id")
-      .references(() => product.productId, { onDelete: "restrict" })
+      .references(() => productsTable.id, { onDelete: "restrict" })
       .notNull(),
     quantity: integer("quantity").notNull().default(1),
     priceAtOrder: integer("price_at_order").notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    ...timestamps,
   },
   (table) => [
     index("order_product_order_id_idx").on(table.orderId),
@@ -184,81 +184,42 @@ export const orderProduct = pgTable(
   ],
 );
 
-// Subscriptions table - tracks Polar subscriptions for users
-export const subscriptions = pgTable(
-  "subscriptions",
-  {
-    id: serial("id").primaryKey(),
-
-    // Your internal user reference
-    userId: integer("user_id")
-      .references(() => users.id, { onDelete: "cascade" })
-      .notNull(),
-
-    // Polar IDs
-    polarCustomerId: varchar("polar_customer_id", { length: 255 }).notNull(),
-    polarSubscriptionId: varchar("polar_subscription_id", { length: 255 })
-      .notNull()
-      .unique(),
-    polarProductId: varchar("polar_product_id", { length: 255 }).notNull(),
-
-    // Customer info from Polar
-    customerEmail: varchar("customer_email", { length: 255 }).notNull(),
-    customerName: varchar("customer_name", { length: 255 }),
-
-    // Subscription details
-    status: subscriptionStatusEnum("status").notNull().default("active"),
-    currentPeriodStart: timestamp("current_period_start"),
-    currentPeriodEnd: timestamp("current_period_end"),
-    canceledAt: timestamp("canceled_at"),
-
-    // Timestamps
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  },
-  (table) => [
-    index("subscriptions_user_id_idx").on(table.userId),
-    index("subscriptions_polar_customer_id_idx").on(table.polarCustomerId),
-    index("subscriptions_polar_subscription_id_idx").on(
-      table.polarSubscriptionId,
-    ),
-    index("subscriptions_status_idx").on(table.status),
-  ],
-);
-
 // Infer insert schemas from schema
-export const orderInsertSchema = createInsertSchema(orders);
-export const orderSelectSchema = createSelectSchema(orders);
-export const orderProductInsertSchema = createInsertSchema(orderProduct);
-export const orderProductSelectSchema = createSelectSchema(orderProduct);
-export const paymentInsertSchema = createInsertSchema(payments);
-export const paymentSelectSchema = createSelectSchema(payments);
-export const addressInsertSchema = createInsertSchema(addresses);
-export const addressSelectSchema = createSelectSchema(addresses);
-export const productCurrencyPriceInsertSchema = createInsertSchema(
-  productCurrencyPrices,
-);
-export const productCurrencyPriceSelectSchema = createSelectSchema(
-  productCurrencyPrices,
-);
+export const orderInsertSchema = createInsertSchema(ordersTable);
+export const orderSelectSchema = createSelectSchema(ordersTable);
+export const orderProductInsertSchema = createInsertSchema(orderProductTable);
+export const orderProductSelectSchema = createSelectSchema(orderProductTable);
+export const paymentInsertSchema = createInsertSchema(paymentsTable);
+export const paymentSelectSchema = createSelectSchema(paymentsTable);
+export const addressInsertSchema = createInsertSchema(addressesTable);
+export const addressSelectSchema = createSelectSchema(addressesTable);
+export const productCurrencyPriceInsertSchema =
+  createInsertSchema(productsPriceTables);
+export const productCurrencyPriceSelectSchema =
+  createSelectSchema(productsPriceTables);
+export const userInsertScehama = createInsertSchema(usersTable);
+export const userSelectScehema = createSelectSchema(usersTable);
+export const productInsertSchema = createInsertSchema(productsTable);
+export const productSelectSchema = createSelectSchema(productsTable);
 
 // Infer types from schema
 export type TCategory = (typeof categoryEnum.enumValues)[number];
-export type TOrderStatus = (typeof orderStatusEnum.enumValues)[number];
-export type TOrderProduct = typeof orderProduct.$inferSelect;
-export type TOrder = typeof orders.$inferSelect;
-export type TProduct = typeof product.$inferSelect;
-export type TUser = typeof users.$inferSelect;
-export type TPayment = typeof payments.$inferSelect;
-export type TAddress = typeof addresses.$inferSelect;
-export type TProductCurrencyPrices = typeof productCurrencyPrices.$inferSelect;
+export type TCurrency = (typeof currencyEnum.enumValues)[number];
+export type OrderStatusType = (typeof orderStatusEnum.enumValues)[number];
+export type TOrderProduct = typeof orderProductTable.$inferSelect;
+export type TOrder = typeof ordersTable.$inferSelect;
+export type TProduct = typeof productsTable.$inferSelect;
+export type TUser = typeof usersTable.$inferSelect;
+export type TPayment = typeof paymentsTable.$inferSelect;
+export type TAddress = typeof addressesTable.$inferSelect;
+export type TProductCurrencyPrices = typeof productsPriceTables.$inferSelect;
 
 // Infer insert types from schema
-export type TOrderProductInsert = typeof orderProduct.$inferInsert;
-export type TOrderInsert = typeof orders.$inferInsert;
-export type TProductInsert = typeof product.$inferInsert;
-export type TUserInsert = typeof users.$inferInsert;
-export type TPaymentInsert = typeof payments.$inferInsert;
-export type TAddressInsert = typeof addresses.$inferInsert;
+export type TOrderProductInsert = typeof orderProductTable.$inferInsert;
+export type TOrderInsert = typeof ordersTable.$inferInsert;
+export type TProductInsert = typeof productsTable.$inferInsert;
+export type TUserInsert = typeof usersTable.$inferInsert;
+export type TPaymentInsert = typeof paymentsTable.$inferInsert;
+export type TAddressInsert = typeof addressesTable.$inferInsert;
 export type TProductCurrencyPricesInsert =
-  typeof productCurrencyPrices.$inferInsert;
+  typeof productsPriceTables.$inferInsert;
