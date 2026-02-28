@@ -8,9 +8,9 @@ import {
   deleteProductSchema,
 } from "@/schema/product.schema";
 import {
-  // getProductsHandler,
-  // getProductByIdHandler,
+  getProductsHandler,
   createProductHandler,
+  getProductByIdHandler,
   // updateProductHandler,
   // deleteProductHandler,
 } from "./handler";
@@ -26,9 +26,9 @@ import {
  */
 export default async function productsRoute(fastify: FastifyInstance) {
   // Get all products (with optional category filter)
-  // fastify.withTypeProvider<ZodTypeProvider>().get("/", {
-  //   handler: getProductsHandler.handler,
-  // });
+  fastify.withTypeProvider<ZodTypeProvider>().get("/", {
+    handler: getProductsHandler.handler,
+  });
 
   // Create a new product
   fastify.withTypeProvider<ZodTypeProvider>().post("/", {
@@ -37,10 +37,10 @@ export default async function productsRoute(fastify: FastifyInstance) {
   });
 
   // // Get product by ID
-  // fastify.withTypeProvider<ZodTypeProvider>().get("/:productId", {
-  //   schema: getProductByIdSchema,
-  //   handler: getProductByIdHandler.handler,
-  // });
+  fastify.withTypeProvider<ZodTypeProvider>().get("/:productId", {
+    // schema: getProductByIdSchema,
+    handler: getProductByIdHandler.handler,
+  });
 
   // // Update a product
   // fastify.withTypeProvider<ZodTypeProvider>().put("/:productId", {
