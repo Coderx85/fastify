@@ -1,12 +1,9 @@
-import {
-  OrderStatusType,
-  TAddress,
-  TOrder,
-  AddressType,
-  TProduct,
-} from "@/db/schema";
+import { OrderStatusType, TAddress, TOrder } from "@/db/schema";
+import { CreateOrderInput, CreateOrderOutput } from "@/schema/order.schema";
 import { FastifyReply } from "fastify";
 import { FastifyRequest } from "fastify/types/request";
+
+export const orderCreatedDate = new Date();
 
 export interface IOrder extends TOrder {}
 
@@ -38,17 +35,10 @@ export interface IOrderItemOutput {
 }
 
 // ========== Order Creation Input Types ==========
-export interface IOrderCreateInput {
-  userId: number;
-  paymentMethod: TPaymentMethod;
-  shippingAddress: IAddressInput;
-  billingAddress?: IAddressInput;
-  products: IOrderItemInput[];
-  notes?: string;
-}
+export interface IOrderCreateInput extends CreateOrderInput {}
 
 // ========== Order DTO Types ==========
-export interface IOrderDTO extends IOrderCreateInput {}
+export interface IOrderDTO extends CreateOrderOutput {}
 
 export interface IOrderInput extends IOrderCreateInput {}
 
@@ -73,10 +63,21 @@ export interface IOrderWithProducts {
   pricing: IOrderPricing;
 }
 
+export type getAllOrdersOptions = {
+  userId?: number;
+  status?: OStatusType;
+  limit?: number;
+  offset?: number;
+};
+
 // ========== Service Interface ==========
 export interface IOrderService {
   createOrder(data: IOrderCreateInput, userId: number): Promise<IOrderResult>;
-  getOrderById(orderId: number, userId: number): Promise<IOrderResult | null>;
+  getOrdersByUserId(orderId: number, userId: number): Promise<IOrderResult[]>;
+  getOrderById(orderId: number): Promise<IOrderResult | null>;
+  getAllOrders(
+    options?: getAllOrdersOptions,
+  ): Promise<{ orders: IOrderResult[]; total: number }>;
   // getOrdersByUserId(userId: number): Promise<IOrderResult[]>;
   // getAllOrders(options?: {
   //   userId?: number;
@@ -92,7 +93,13 @@ export interface IOrderController {
     request: FastifyRequest<{ Body: IOrderInput }>,
     reply: FastifyReply,
   ): Promise<void>;
+
+  getOrderByIdHandler(
+    request: FastifyRequest<{ Params: { orderId: number } }>,
+    reply: FastifyReply,
+  ): Promise<void>;
 }
+
 export class OrderValidationError extends Error {
   constructor(message: string) {
     super(message);

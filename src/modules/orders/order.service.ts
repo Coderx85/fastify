@@ -20,13 +20,24 @@ import {
   InvalidProductError,
   InsufficientAddressError,
   TCurrency as DefinitionCurrency,
-} from "./order.definiton";
+  OStatusType,
+  getAllOrdersOptions,
+} from "./order.definition";
 import {
   currencyService,
   type PaymentMethod,
   type CurrencyType,
 } from "@/modules/currency/currency.service";
 import { eq, and, inArray } from "drizzle-orm";
+
+type findOrderOptions = getAllOrdersOptions & {
+  orderId?: number;
+};
+
+type findOrderResponse = {
+  orders: IOrderResult[];
+  firstOrder: IOrderResult;
+};
 
 export class OrderService implements IOrderService {
   private productService: ProductService;
@@ -126,6 +137,110 @@ export class OrderService implements IOrderService {
     }
 
     return productMap;
+  }
+
+  /**
+   * Find orders based on various criteria
+   *
+   *@param options - Search criteria for finding orders (orderId, userId, status)
+   *@param options.orderId - Optional order ID to search for
+   *@param options.userId - Optional user ID to filter orders by
+   *@param options.status - Optional order status to filter by
+   *@returns An object containing the list of matching orders and the first order for reference
+   *@throws Error if no orders are found matching the criteria
+   */
+  private async findOrder({
+    options,
+  }: {
+    options?: findOrderOptions;
+  }): Promise<findOrderResponse> {
+    const { orderId, userId, status, limit, offset } = options || {};
+
+    let whereconditions = [];
+
+    if (orderId) {
+      whereconditions.push(eq(ordersTable.id, orderId));
+    }
+
+    if (userId) {
+      whereconditions.push(eq(ordersTable.userId, userId));
+    }
+
+    if (status) {
+      whereconditions.push(eq(ordersTable.status, status));
+    }
+
+    const orderRecord = await db
+      .select()
+      .from(ordersTable)
+      .where(and(...whereconditions))
+      .limit(limit || 10)
+      .offset(offset || 0);
+
+    if (!orderRecord || orderRecord.length === 0) {
+      throw new Error("Orders not found");
+    }
+
+    let orders: IOrderResult[] = [];
+    for (const order of orderRecord) {
+      let orderItem: IOrderResult;
+      // Fetch order items
+      const orderItems = await db
+        .select()
+        .from(orderProductTable)
+        .where(eq(orderProductTable.orderId, order.id));
+
+      // Fetch addresses
+      const [shippingAddr] = await db
+        .select()
+        .from(addressesTable)
+        .where(eq(addressesTable.id, order.shippingAddressId))
+        .limit(1);
+
+      const [billingAddr] = await db
+        .select()
+        .from(addressesTable)
+        .where(eq(addressesTable.id, order.billingAddressId))
+        .limit(1);
+
+      // Calculate pricing information
+      const pricing: IOrderPricing = {
+        originalAmount: order.totalAmount, // Assuming this is in the correct currency
+        convertedAmount: order.totalAmount, // For simplicity, using the same value
+        currency: order.totalAmountCurrency as DefinitionCurrency,
+        exchangeRate: 1, // Exchange rate would need to be stored in the order for accurate conversion
+      };
+
+      orders.push({
+        ...(order as TOrder),
+        shippingAddress: shippingAddr as IAddressOutput,
+        billingAddress: billingAddr as IAddressOutput,
+        items: orderItems.map((item) => ({
+          id: item.id,
+          orderId: item.orderId,
+          productId: item.productId,
+          quantity: item.quantity,
+          priceAtOrder: item.priceAtOrder / 100, // Convert back to normal units
+          createdAt: item.createdAt,
+        })),
+        pricing,
+      });
+    }
+
+    return {
+      orders,
+      firstOrder: orders[0],
+    };
+  }
+
+  private async updateOrderStatus(
+    orderId: number,
+    status: OStatusType,
+  ): Promise<void> {
+    await db
+      .update(ordersTable)
+      .set({ status })
+      .where(eq(ordersTable.id, orderId));
   }
 
   /**
@@ -335,64 +450,48 @@ export class OrderService implements IOrderService {
     });
   }
 
-  async getOrderById(
+  async getOrdersByUserId(
     orderId: number,
     userId: number,
-  ): Promise<IOrderResult | null> {
+  ): Promise<IOrderResult[]> {
     try {
-      const [orderRecord] = await db
-        .select()
-        .from(ordersTable)
-        .where(and(eq(ordersTable.id, orderId), eq(ordersTable.userId, userId)))
-        .limit(1);
+      const result = await this.findOrder({
+        options: { userId, orderId },
+      });
 
-      if (!orderRecord) {
-        return null;
-      }
+      return result.orders;
+    } catch (error: unknown) {
+      throw new Error("Failed to fetch orders for user", {
+        cause: error,
+      });
+    }
+  }
 
-      // Fetch order items
-      const orderItems = await db
-        .select()
-        .from(orderProductTable)
-        .where(eq(orderProductTable.orderId, orderId));
+  async getOrderById(orderId: number): Promise<IOrderResult> {
+    try {
+      const { firstOrder: order } = await this.findOrder({
+        options: { orderId },
+      });
 
-      // Fetch addresses
-      const [shippingAddr] = await db
-        .select()
-        .from(addressesTable)
-        .where(eq(addressesTable.id, orderRecord.shippingAddressId))
-        .limit(1);
-
-      const [billingAddr] = await db
-        .select()
-        .from(addressesTable)
-        .where(eq(addressesTable.id, orderRecord.billingAddressId))
-        .limit(1);
-
-      // Calculate pricing information
-      const pricing: IOrderPricing = {
-        originalAmount: orderRecord.totalAmount, // Assuming this is in the correct currency
-        convertedAmount: orderRecord.totalAmount, // For simplicity, using the same value
-        currency: orderRecord.totalAmountCurrency as DefinitionCurrency,
-        exchangeRate: 1, // Exchange rate would need to be stored in the order for accurate conversion
-      };
-
-      return {
-        ...(orderRecord as TOrder),
-        shippingAddress: shippingAddr as IAddressOutput,
-        billingAddress: billingAddr as IAddressOutput,
-        items: orderItems.map((item) => ({
-          id: item.id,
-          orderId: item.orderId,
-          productId: item.productId,
-          quantity: item.quantity,
-          priceAtOrder: item.priceAtOrder / 100, // Convert back to normal units
-          createdAt: item.createdAt,
-        })),
-        pricing,
-      };
+      return order;
     } catch (error) {
       throw new Error("Failed to fetch order", {
+        cause: error,
+      });
+    }
+  }
+
+  async getAllOrders(
+    options?: getAllOrdersOptions,
+  ): Promise<{ orders: IOrderResult[]; total: number }> {
+    try {
+      const { orders } = await this.findOrder({
+        options,
+      });
+
+      return { orders, total: orders.length };
+    } catch (error) {
+      throw new Error("Failed to fetch orders", {
         cause: error,
       });
     }
