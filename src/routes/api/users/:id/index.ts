@@ -11,4 +11,10 @@ export default async function userRoute(fastify: FastifyInstance) {
     schema: getOrderByUserIdSchema,
     handler: userController.getOrderByUserIdHandler,
   });
+
+  // PUT /api/users/:userId
+  fastify.withTypeProvider<ZodTypeProvider>().put("/:userId", {
+    schema: getUserSchema,
+    handler: userController.updateUserHandler,
+  });
 }
