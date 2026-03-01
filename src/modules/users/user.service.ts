@@ -1,13 +1,14 @@
 import { db } from "@/db";
 import { usersTable } from "@/db/schema";
-import { hashPassword } from "@/lib";
+import { createIdInNumber, generateUUID } from "@/lib/uuid";
 import type {
   CreateUserInput,
   IUser,
   IUserService,
+  SafeUser,
   UpdateUserInput,
 } from "@/modules/users/user.definition";
-import { eq, and } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 /**
  * Custom error for duplicate user (unique constraint violation)
@@ -17,7 +18,10 @@ export class DuplicateUserError extends Error {
 
   constructor(email: string, contact?: string) {
     super(
-      `User with email ${email.replace(/^\\?["']|\\?["']$/g, "").trim()} or contact ${contact} already exists`,
+      `User with email ${email.replace(
+        /^\\?["']|\\?["']$/g,
+        "",
+      )} or contact ${contact} already exists`,
     );
     this.name = "DuplicateUserError";
     Object.setPrototypeOf(this, DuplicateUserError.prototype);
@@ -38,71 +42,101 @@ export class DatabaseError extends Error {
   }
 }
 
-class UserService implements IUserService {
-  private async findUser(email: string): Promise<IUser | null> {
-    try {
-      // helper used internally; always limit to a single row
-      const [user] = await db
-        .select()
-        .from(usersTable)
-        .where(eq(usersTable.email, email))
-        .limit(1);
+// Define columns to be returned for user queries, excluding password
+const selectedColumns = {
+  id: usersTable.id,
+  name: usersTable.name,
+  email: usersTable.email,
+  contact: usersTable.contact,
+  createdAt: usersTable.createdAt,
+  updatedAt: usersTable.updatedAt,
+};
 
-      // Drizzle returns undefined when no rows are found
+// Prepared statement for getting a user by ID
+const getUserByIdStatement = db
+  .select(selectedColumns)
+  .from(usersTable)
+  .where(eq(usersTable.id, sql.placeholder("id")))
+  .prepare("get_user_by_id");
+
+// Prepared statement for getting a user by email
+const getUserByEmailStatement = db
+  .select(selectedColumns)
+  .from(usersTable)
+  .where(eq(usersTable.email, sql.placeholder("email")))
+  .prepare("get_user_by_email");
+
+// Prepared statement for getting a user by email for auth (includes password)
+const getUserForAuthStatement = db
+  .select()
+  .from(usersTable)
+  .where(eq(usersTable.email, sql.placeholder("email")))
+  .prepare("get_user_for_auth");
+
+class UserService implements IUserService {
+  async getUserById(id: number): Promise<SafeUser | null> {
+    try {
+      const [user] = await getUserByIdStatement.execute({ id });
+
+      if (!user) {
+        throw new Error(`User with ID ${id} not found`, {
+          cause: { code: "USER_NOT_FOUND" },
+        });
+      }
+
+      return user;
+    } catch (error) {
+      console.error("Error getting user by ID:", error);
+      throw new DatabaseError(
+        "Error finding user",
+        (error as any)?.cause?.code,
+      );
+    }
+  }
+
+  async findByEmail(email: string): Promise<SafeUser | null> {
+    try {
+      const [user] = await getUserByEmailStatement.execute({ email });
       return user || null;
     } catch (error) {
-      throw new Error("Error finding user");
-    }
-  }
-
-  async getUserById(id: number): Promise<IUser | null> {
-    const [user] = await db
-      .select()
-      .from(usersTable)
-      .where(eq(usersTable.id, id));
-
-    if (!user) {
-      return null;
-    }
-
-    return user;
-  }
-
-  async findByEmail(email: string): Promise<IUser | null> {
-    // reuse the private helper so the logic is consistent
-    try {
-      return await this.findUser(email);
-    } catch (error) {
-      // pass along the error as-is; higher layers decide how to respond
+      console.error("Error finding user by email:", error);
       throw error;
     }
   }
 
-  // async findByContact(contact: string, password: string): Promise<IUser> {
-  //   const user = await this.findUser(password, undefined, contact);
-
-  //   if (!user || user === null) {
-  //     throw new Error("User not found");
-  //   }
-
-  //   return user;
-  // }
-
-  async createUser(data: CreateUserInput): Promise<IUser> {
+  async findUserForAuth(email: string): Promise<IUser | null> {
     try {
-      const [result] = await db.insert(usersTable).values(data).returning();
+      const [user] = await getUserForAuthStatement.execute({ email });
+      return user || null;
+    } catch (error) {
+      console.error("Error finding user for auth by email:", error);
+      throw error;
+    }
+  }
+
+  async createUser(data: CreateUserInput): Promise<SafeUser> {
+    try {
+      const id: number = generateUUID();
+      const [result] = await db
+        .insert(usersTable)
+        .values({
+          id,
+          name: data.name,
+          email: data.email,
+          password: data.password,
+          contact: data.contact,
+          createdAt: new Date(),
+        })
+        .returning(selectedColumns);
 
       return result;
     } catch (error: any) {
-      // Check for PostgreSQL unique-constraint violation
-      // The error code can be at error.code or error.cause.code (for DrizzleQueryError)
       const errorCode = error.code || error.cause?.code;
 
       if (errorCode === "23505") {
         throw new DuplicateUserError(data.email, data.contact?.toString());
       }
 
-      // Other database errors
       if (errorCode) {
         console.error("Database error:", error);
         throw new DatabaseError(`Database error: ${error.message}`, errorCode);
@@ -113,14 +147,43 @@ class UserService implements IUserService {
     }
   }
 
-  async updateUser(id: number, data: UpdateUserInput): Promise<IUser | null> {
-    const [result] = await db
-      .update(usersTable)
-      .set(data)
-      .where(eq(usersTable.id, id))
-      .returning();
+  async updateUser(id: number, data: UpdateUserInput): Promise<SafeUser> {
+    try {
+      // Check if user exists before updating
+      const existingUser = await this.getUserById(id);
 
-    return result || null;
+      const timestamp = new Date();
+
+      const [result] = await db
+        .update(usersTable)
+        .set({
+          ...data,
+          updatedAt: timestamp,
+        })
+        .where(eq(usersTable.id, id))
+        .returning();
+
+      console.log("Update result:", result);
+
+      return result;
+    } catch (error) {
+      console.error("Error updating user:", error);
+      // Preserve the cause code if it exists (e.g., USER_NOT_FOUND)
+      throw new DatabaseError(
+        "Failed to update user",
+        (error as any)?.code || (error as any)?.cause?.code,
+      );
+    }
+  }
+
+  async getAllUsers(): Promise<IUser[]> {
+    try {
+      const users = await db.select(selectedColumns).from(usersTable);
+      return users;
+    } catch (error) {
+      console.error("Error getting all users:", error);
+      throw new DatabaseError("Failed to retrieve users");
+    }
   }
 }
 

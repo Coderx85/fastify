@@ -1,5 +1,9 @@
-import { db } from "@/db";
-import { productsTable as product, productsPriceTables } from "@/db/schema";
+import { db, dbPool } from "@/db";
+import {
+  productsTable as product,
+  productsPriceTables,
+  TProduct,
+} from "@/db/schema";
 import {
   currencyType,
   IProduct,
@@ -71,7 +75,9 @@ export class ProductService implements IProductService {
 
     // Add related price for the other currency as well
     if (currencyType === "usd") {
-      const inrAmount = await this.convertToIndianRupees(priceAmount);
+      const inrAmount = Math.round(
+        await this.convertToIndianRupees(priceAmount),
+      );
       await tx.insert(productsPriceTables).values({
         productId,
         priceAmount: inrAmount,
@@ -79,7 +85,7 @@ export class ProductService implements IProductService {
       });
       rates.inr = inrAmount;
     } else {
-      const usdAmount = await this.convertToDollars(priceAmount);
+      const usdAmount = Math.round(await this.convertToDollars(priceAmount));
       await tx.insert(productsPriceTables).values({
         productId,
         priceAmount: usdAmount,
@@ -91,22 +97,19 @@ export class ProductService implements IProductService {
     return rates;
   }
 
-  private async findProductById(id: number) {
+  private async findProductById(id: number): Promise<TProduct | null> {
     const [productRecord] = await db
       .select()
       .from(product)
       .where(eq(product.id, id))
       .limit(1);
 
-    if (!productRecord) {
-      return null;
-    }
-    return productRecord;
+    return productRecord ?? null;
   }
 
-  async createProduct(data: IProductDTO) {
+  async createProduct(data: IProductInput): Promise<IProduct> {
     try {
-      return await db.transaction(async (tx) => {
+      return await dbPool.transaction(async (tx) => {
         // Insert the base product
         const [createdProduct] = await tx
           .insert(product)
@@ -184,13 +187,12 @@ export class ProductService implements IProductService {
         cause: error,
       });
     }
-    return baseProducts;
   }
 
   async getProductById(id: number): Promise<IProduct | null> {
     let baseProduct: IProduct | null = null;
     try {
-      await db.transaction(async (tx) => {
+      await dbPool.transaction(async (tx) => {
         const [productRecord] = await tx
           .select()
           .from(product)
@@ -301,21 +303,22 @@ export class ProductService implements IProductService {
     }
   }
 
-  async deleteProduct(id: number): Promise<{ success: boolean }> {
+  async deleteProduct(id: number): Promise<{ deleted: boolean }> {
     const checkExisting = await this.findProductById(id);
 
-    if (!checkExisting) {
+    if (checkExisting === null) {
       throw new Error(`Product with ID ${id} not found`, {
         cause: { code: "NOT_FOUND" },
       });
     }
+
     try {
       await db.delete(product).where(eq(product.id, id));
       await db
         .delete(productsPriceTables)
         .where(eq(productsPriceTables.productId, id));
 
-      return { success: true };
+      return { deleted: true };
     } catch (error) {
       throw new Error("Failed to delete product", {
         cause: error,

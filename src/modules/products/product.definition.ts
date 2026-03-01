@@ -10,15 +10,7 @@ export type RateMap = Record<currencyType, number>;
 
 type createProductInput = z.infer<typeof createProductInputSchema>;
 
-export interface IProductInput extends createProductInput {}
-
-export type CreateProductResult = z.infer<typeof createProductResultSchema>;
-
-export interface IProduct extends CreateProductResult {}
-
-export type currencyType = (typeof currencyEnum.enumValues)[number];
-
-export interface IProductDTO extends IProductInput {
+export interface IProductInput extends createProductInput {
   id?: number | undefined;
   description: string;
   category: productCategoryType;
@@ -28,10 +20,18 @@ export interface IProductDTO extends IProductInput {
   currency: currencyType;
 }
 
+export type CreateProductResult = z.infer<typeof createProductResultSchema>;
+
+export interface IProduct extends CreateProductResult {}
+
+export type currencyType = (typeof currencyEnum.enumValues)[number];
+
+export interface IProductDTO extends IProductInput {}
+
 export type productCategoryType = (typeof categoryEnum.enumValues)[number];
 
 export interface IProductService {
-  createProduct(input: IProductInput): Promise<IProduct | null>;
+  createProduct(input: IProductInput): Promise<IProduct>;
 
   getProducts(): Promise<IProduct[] | null>;
 
@@ -41,6 +41,8 @@ export interface IProductService {
     id: number,
     input: Partial<IProductInput>,
   ): Promise<IProduct | null>;
+
+  deleteProduct(id: number): Promise<{ deleted: boolean }>;
 }
 
 export interface ProductsController {

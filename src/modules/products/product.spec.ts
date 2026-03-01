@@ -9,13 +9,18 @@ import {
   rateMapSample,
   sampleDate,
 } from "@test/samples/products-sample";
+import { dbPool } from "@/db";
 
 // ── Mock DB so no real Postgres connection is made ───────────────────────────
 vi.mock("@/db", () => ({
+  dbPool: {
+    transaction: vi.fn(),
+  },
   db: {
     transaction: vi.fn(),
     insert: vi.fn(),
     select: vi.fn(),
+    delete: vi.fn(),
   },
 }));
 
@@ -95,10 +100,11 @@ function makeTxWithProduct() {
 // ── Tests ─────────────────────────────────────────────────────────────────────
 describe("ProductService (real implementation, db mocked)", () => {
   let db: (typeof import("@/db"))["db"];
+  let dbPool: (typeof import("@/db"))["dbPool"];
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    ({ db } = await import("@/db"));
+    ({ db, dbPool } = await import("@/db"));
   });
 
   // ── createProduct ───────────────────────────────────────────────────────────
@@ -111,7 +117,7 @@ describe("ProductService (real implementation, db mocked)", () => {
 
     it("should create a product and return it with both currency rates (USD base)", async () => {
       makeFetchSuccess();
-      vi.mocked(db.transaction).mockImplementation(async (cb: any) =>
+      vi.mocked(dbPool.transaction).mockImplementation(async (cb: any) =>
         cb(makeTxWithProduct()),
       );
       // addPriceToProduct calls db.insert directly (not via tx)
@@ -127,7 +133,7 @@ describe("ProductService (real implementation, db mocked)", () => {
 
     it("Error - Product Already Exists", async () => {
       makeFetchSuccess();
-      vi.mocked(db.transaction).mockImplementation(async (cb: any) =>
+      vi.mocked(dbPool.transaction).mockImplementation(async (cb: any) =>
         cb(makeTxWithProduct()),
       );
 
@@ -141,7 +147,7 @@ describe("ProductService (real implementation, db mocked)", () => {
       const uniqueConstraintError = new Error("Unique constraint violation");
       (uniqueConstraintError as any).code = "23505";
 
-      vi.mocked(db.transaction).mockImplementationOnce(async (cb: any) =>
+      vi.mocked(dbPool.transaction).mockImplementationOnce(async (cb: any) =>
         cb({
           insert: vi.fn().mockReturnValue({
             values: vi.fn().mockReturnValue({
@@ -166,7 +172,7 @@ describe("ProductService (real implementation, db mocked)", () => {
 
     it("Error - PRODUCT_CREATE_FAILED", async () => {
       makeFetchSuccess();
-      vi.mocked(db.transaction).mockImplementation(async (cb: any) =>
+      vi.mocked(dbPool.transaction).mockImplementation(async (cb: any) =>
         cb({
           insert: vi.fn().mockReturnValue({
             values: vi.fn().mockReturnValue({
@@ -192,7 +198,9 @@ describe("ProductService (real implementation, db mocked)", () => {
   describe("getProductById", () => {
     it("should return a product with its rates when found", async () => {
       const tx = makeTxForGetById([dbProductRow], priceRowsSample);
-      vi.mocked(db.transaction).mockImplementation(async (cb: any) => cb(tx));
+      vi.mocked(dbPool.transaction).mockImplementation(async (cb: any) =>
+        cb(tx),
+      );
 
       const { productService } = await import("./product.service");
       const result = await productService.getProductById(1);
@@ -203,7 +211,9 @@ describe("ProductService (real implementation, db mocked)", () => {
 
     it("should return null when product is not found", async () => {
       const tx = makeTxForGetById([]);
-      vi.mocked(db.transaction).mockImplementation(async (cb: any) => cb(tx));
+      vi.mocked(dbPool.transaction).mockImplementation(async (cb: any) =>
+        cb(tx),
+      );
 
       const { productService } = await import("./product.service");
 
@@ -221,7 +231,7 @@ describe("ProductService (real implementation, db mocked)", () => {
     });
 
     it("should throw when DB query fails", async () => {
-      vi.mocked(db.transaction).mockRejectedValue(
+      vi.mocked(dbPool.transaction).mockRejectedValue(
         new Error("DB connection lost"),
       );
 
@@ -291,6 +301,44 @@ describe("ProductService (real implementation, db mocked)", () => {
     });
   });
 
+  // ── deleteProduct ─────────────────────────────────────────────────────────
+  describe("deleteProduct", () => {
+    it("should delete a product and its prices successfully", async () => {
+      // Mock db.select() for findProductById check
+      vi.mocked(db.select).mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([dbProductRow]),
+          }),
+        }),
+      } as any);
+
+      // Mock db.delete() for the delete operations
+      vi.mocked(db.delete).mockReturnValue({
+        where: vi.fn().mockResolvedValue(undefined),
+      } as any);
+
+      const { productService } = await import("./product.service");
+      const result = await productService.deleteProduct(1);
+
+      // Verify deletion was successful
+      assert.deepEqual(result, { deleted: true });
+
+      // Verify db.delete was called
+      assert.equal(
+        vi.mocked(db.delete).mock.calls.length,
+        2,
+        "Should call delete twice (product and prices)",
+      );
+
+      // Verify db.select was called for findProductById check
+      assert.equal(
+        vi.mocked(db.select).mock.calls.length,
+        1,
+        "Should check if product exists",
+      );
+    });
+  });
   afterEach(() => {
     vi.resetAllMocks();
   });
