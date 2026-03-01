@@ -222,6 +222,52 @@ describe("/api/products route", () => {
     });
   });
 
+  describe("DELETE /api/products/:productId delete product", () => {
+    it("Code - 404 | NOT_FOUND when product does not exist", async () => {
+      // Arrange
+      const { productService } =
+        await import("@/modules/products/product.service");
+      vi.mocked(productService.deleteProduct).mockRejectedValue(
+        new Error("Product with ID 999 not found", {
+          cause: { code: "NOT_FOUND" },
+        }),
+      );
+
+      // Act
+      const response = await app.inject({
+        method: "DELETE",
+        url: "/api/products/999",
+      });
+
+      // Assert
+      assert.equal(response.statusCode, 404);
+      const body = response.json<TErrorResponse>();
+      assert.equal(body.error, "NOT_FOUND");
+      assert.equal(body.message, "Product with ID 999 not found");
+    });
+
+    it("Code - 500 | INTERNAL_SERVER_ERROR on unexpected failure", async () => {
+      // Arrange
+      const { productService } =
+        await import("@/modules/products/product.service");
+      vi.mocked(productService.deleteProduct).mockRejectedValue(
+        new Error("Database connection lost"),
+      );
+
+      // Act
+      const response = await app.inject({
+        method: "DELETE",
+        url: "/api/products/1",
+      });
+
+      // Assert
+      assert.equal(response.statusCode, 500);
+      const body = response.json<TErrorResponse>();
+      assert.equal(body.error, "INTERNAL_SERVER_ERROR");
+      assert.equal(body.message, "Failed to delete product");
+    });
+  });
+
   afterAll(async () => {
     await app.close();
   });

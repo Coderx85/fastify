@@ -13,7 +13,8 @@ const { mockCreateUser } = vi.hoisted(() => ({
   mockCreateUser: vi.fn(),
 }));
 
-vi.mock("@/modules/user.service", () => ({
+// correct path to user service
+vi.mock("@/modules/users/user.service", () => ({
   userService: {
     createUser: mockCreateUser,
   },

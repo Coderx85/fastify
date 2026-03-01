@@ -17,7 +17,7 @@ export const loginRouteHandler = {
     try {
       let user: IUser | null = null;
 
-      user = await userService.findByEmail(email);
+      user = await userService.findUserForAuth(email);
 
       if (!user) {
         return sendError("User not found", "USER_NOT_FOUND", reply, 404);

@@ -3,6 +3,7 @@ import { sendError, sendSuccess } from "@/lib/response";
 import { CreateProductInput } from "@/schema/product.schema";
 import { productService } from "@/modules/products/product.service";
 import { IProduct } from "@/modules/products/product.definition";
+import { getCauseCode } from "@/lib/error";
 
 /**
  * Handler for getting all products (with optional category filter)
@@ -14,7 +15,7 @@ export const getProductsHandler = {
       // const { category } = request.query;
 
       // Get products - either all or filtered by category
-      const products = productService.getProducts();
+      const products = await productService.getProducts();
 
       // // Validate products
       // if (!products || products.length === 0) {
@@ -37,9 +38,15 @@ export const getProductsHandler = {
       );
     } catch (error) {
       request.log.error(error);
+
+      const code = getCauseCode(error);
+      if (code === "NOT_FOUND") {
+        return sendError("NOT_FOUND", "No products found", reply, 404);
+      }
+
       return sendError(
-        "Failed to fetch products",
         "INTERNAL_SERVER_ERROR",
+        "Failed to fetch products",
         reply,
         500,
       );
@@ -73,6 +80,17 @@ export const getProductByIdHandler = {
       sendSuccess({ product }, "Product fetched successfully", reply, 200);
     } catch (error) {
       request.log.error(error);
+
+      const code = getCauseCode(error);
+      if (code === "NOT_FOUND") {
+        return sendError(
+          "NOT_FOUND",
+          `Product with ID ${request.params.productId} not found`,
+          reply,
+          404,
+        );
+      }
+
       return sendError(
         "INTERNAL_SERVER_ERROR",
         "Failed to fetch product",
@@ -109,17 +127,52 @@ export const createProductHandler = {
     } catch (error) {
       request.log.error(error);
 
-      if (error instanceof Error) {
-        const cause = (error as any).cause as { code?: string } | undefined;
-
-        if (cause?.code === "CONFLICT") {
-          return sendError(cause.code, error.message, reply, 409);
-        }
+      const code = getCauseCode(error);
+      if (code === "CONFLICT" && error instanceof Error) {
+        return sendError("CONFLICT", error.message, reply, 409);
       }
 
       return sendError(
-        "An unexpected error occurred while creating the product.",
         "INTERNAL_SERVER_ERROR",
+        "An unexpected error occurred while creating the product.",
+        reply,
+        500,
+      );
+    }
+  },
+};
+
+/**
+ * Handler for deleting a product by ID
+ * @method DELETE /products/:productId
+ */
+export const deleteProductHandler = {
+  handler: async (
+    request: FastifyRequest<{ Params: { productId: number } }>,
+    reply: FastifyReply,
+  ) => {
+    try {
+      const { productId } = request.params;
+
+      const result = await productService.deleteProduct(productId);
+
+      sendSuccess(result, "Product deleted successfully", reply, 200);
+    } catch (error) {
+      request.log.error(error);
+
+      const code = getCauseCode(error);
+      if (code === "NOT_FOUND") {
+        return sendError(
+          "NOT_FOUND",
+          `Product with ID ${request.params.productId} not found`,
+          reply,
+          404,
+        );
+      }
+
+      return sendError(
+        "INTERNAL_SERVER_ERROR",
+        "Failed to delete product",
         reply,
         500,
       );

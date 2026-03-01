@@ -10,7 +10,6 @@ const testUser: IUser = {
   id: 1,
   email: "test@example.com",
   name: "Test User",
-  password: hashPassword("password123"),
   contact: "1234567890",
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -27,17 +26,15 @@ type LoginSuccessResponse = ISuccessResponse<LoginResponseData>;
 type LoginErrorResponse = TErrorResponse;
 
 // Hoist mock functions so they're accessible outside vi.mock()
-const { mockFindByEmail, mockFindByContact } = vi.hoisted(() => ({
-  mockFindByEmail: vi.fn(),
-  mockFindByContact: vi.fn(),
+const { mockFindUserForAuth } = vi.hoisted(() => ({
+  mockFindUserForAuth: vi.fn(),
 }));
 
 // Mock userService directly — cleaner than mocking @/db since the handler
 // only calls userService methods, not the DB directly.
-vi.mock("@/modules/user.service", () => ({
+vi.mock("@/modules/users/user.service", () => ({
   userService: {
-    findByEmail: mockFindByEmail,
-    findByContact: mockFindByContact,
+    findUserForAuth: mockFindUserForAuth,
   },
 }));
 
@@ -115,11 +112,10 @@ describe("Logink API", () => {
     await app.ready();
 
     // Default: all calls resolve to testUser
-    mockFindByEmail.mockResolvedValue(testUser);
-    mockFindByContact.mockResolvedValue(testUser);
+    mockFindUserForAuth.mockResolvedValue(testUser);
   });
 
-  it("Login using email and passwords", async () => {
+  it("Login using email and password", async () => {
     // Arrange
     const validCredentials: LoginUsingEmailInput = {
       email: "test@example.com",
@@ -168,7 +164,8 @@ describe("Logink API", () => {
     assert.equal(response.statusCode, 401);
     const body = response.json<LoginErrorResponse>();
     assert.equal(body.ok, false);
-    assert.equal(body.error, "Invalid credentials");
+    // handler message uses 'Invalid email or password'
+    assert.equal(body.error, "Invalid email or password");
   });
 
   it("Login with missing email", async () => {
@@ -190,8 +187,8 @@ describe("Logink API", () => {
   });
 
   it("user not found", async () => {
-    // Override: simulate DB returning no user for this test only
-    mockFindByEmail.mockRejectedValueOnce(new Error("User not found"));
+    // Override: simulate no user found
+    mockFindUserForAuth.mockResolvedValueOnce(null);
 
     // Arrange
     const invalidCredentials: LoginUsingEmailInput = {

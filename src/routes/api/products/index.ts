@@ -12,7 +12,7 @@ import {
   createProductHandler,
   getProductByIdHandler,
   // updateProductHandler,
-  // deleteProductHandler,
+  deleteProductHandler,
 } from "./handler";
 
 /**
@@ -49,8 +49,8 @@ export default async function productsRoute(fastify: FastifyInstance) {
   // });
 
   // // Delete a product
-  // fastify.withTypeProvider<ZodTypeProvider>().delete("/:productId", {
-  //   schema: deleteProductSchema,
-  //   handler: deleteProductHandler.handler,
-  // });
+  fastify.withTypeProvider<ZodTypeProvider>().delete("/:productId", {
+    schema: deleteProductSchema,
+    handler: deleteProductHandler.handler,
+  });
 }

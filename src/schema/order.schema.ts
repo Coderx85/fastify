@@ -41,24 +41,24 @@ export const orderWithProductsSchema = z.object({
   products: z.array(orderProductSchema),
 });
 
-// Create order response schema
-export const createOrderSchema = {
-  body: createOrderBodySchema,
-  response: {
-    201: successResponseSchema(orderWithProductsSchema),
-  },
-};
+// // Create order response schema
+// export const createOrderSchema = {
+//   body: createOrderBodySchema,
+//   response: {
+//     201: successResponseSchema(orderWithProductsSchema),
+//   },
+// };
 
 // ============ Get Order Schemas ============
 
-export const getOrderByIdSchema = {
-  params: z.object({
-    orderId: z.coerce.number().int().positive(),
-  }),
-  response: {
-    200: successResponseSchema(orderWithProductsSchema),
-  },
-};
+// export const getOrderByIdSchema = {
+//   params: z.object({
+//     orderId: z.coerce.number().int().positive(),
+//   }),
+//   response: {
+//     200: successResponseSchema(orderWithProductsSchema),
+//   },
+// };
 
 // Update order details body (all fields optional)
 export const updateOrderBodySchema = z.object({
@@ -181,6 +181,7 @@ const orderItemInputSchema = z.object({
   quantity: z.number().int().positive().default(1),
 });
 
+// POST - /api/order
 const createOrderInputBaseSchema = orderInsertSchema
   .pick({
     userId: true,
@@ -201,8 +202,8 @@ const createOrderOutputBaseSchema = orderInsertSchema
     billingAddressId: true,
   })
   .extend({
-    shippingAddress: addressInput,
-    billingAddress: addressInput,
+    shippingAddress: addressInput.omit({ addressType: true, isDefault: true }),
+    billingAddress: addressInput.omit({ addressType: true, isDefault: true }),
     items: z.array(orderItemInputSchema),
     pricing: z.object({
       originalAmount: z.number().nonnegative(),
@@ -212,9 +213,31 @@ const createOrderOutputBaseSchema = orderInsertSchema
     }),
   });
 
-export const createOrderInputSchema = {
+export const createOrderSchema = {
   body: createOrderInputBaseSchema,
   response: {
     201: successResponseSchema(createOrderOutputBaseSchema),
   },
 };
+export type CreateOrderInput = z.infer<typeof createOrderInputBaseSchema>;
+export type CreateOrderOutput = z.infer<typeof createOrderOutputBaseSchema>;
+
+// GET - /api/order/:orderId
+
+export const getOrderByIdSchema = {
+  params: z.object({
+    orderId: z.coerce.number().int().positive(),
+  }),
+  response: {
+    200: successResponseSchema(createOrderOutputBaseSchema),
+  },
+};
+
+export type GetOrderByIdInput = z.infer<typeof getOrderByIdSchema.params>;
+export type GetOrderByIdOutput = z.infer<typeof createOrderOutputBaseSchema>;
+
+// PUT - /api/order/:orderId
+
+export type UpdateOrderInput = z.infer<typeof updateOrderBodySchema>;
+
+export const orderResultSchema = createOrderOutputBaseSchema;
