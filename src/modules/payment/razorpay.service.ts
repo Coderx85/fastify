@@ -2,7 +2,7 @@ import Razorpay from "razorpay";
 import crypto from "crypto";
 import { config } from "@/lib/config";
 import { db } from "@/db";
-import { orders, payments } from "@/db/schema";
+import { ordersTable as orders, paymentsTable as payments } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { STATUS_CODES } from "http";
 
