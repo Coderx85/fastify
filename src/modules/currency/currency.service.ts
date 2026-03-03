@@ -33,6 +33,8 @@ export class CurrencyService {
   private exchangeRates: Map<string, ExchangeRateData> = new Map();
   private readonly CACHE_DURATION_MS = 3600000; // 1 hour
 
+  private readonly EXCHANGE_BASE_URL = `https://v6.exchangerate-api.com/v6${config.EXCHANGE_API}/pair`;
+
   // Payment method to currency mapping
   private readonly PAYMENT_METHOD_MAP: Record<PaymentMethod, CurrencyType> = {
     razorpay: "inr",
@@ -52,7 +54,8 @@ export class CurrencyService {
   /**
    * Initialize default exchange rates
    */
-  private initializeDefaultRates(): void {
+  private async initializeDefaultRates(): Promise<void> {
+    const rate = fetch(`${this.EXCHANGE_BASE_URL}/INR`);
     this.exchangeRates.set("inr_to_usd", {
       from: "inr",
       to: "usd",
@@ -96,7 +99,7 @@ export class CurrencyService {
 
     try {
       const res = await fetch(
-        `https://v6.exchangerate-api.com/v6/${config.EXCHANGE_API}/pair/${fromCode}/${toCode}`,
+        `${this.EXCHANGE_BASE_URL}/${fromCode}/${toCode}`,
       );
 
       const data = await res.json();
@@ -136,7 +139,7 @@ export class CurrencyService {
 
     try {
       const res = await fetch(
-        `https://v6.exchangerate-api.com/v6/${config.EXCHANGE_API}/pair/${fromCode}/${toCode}/${amount}`,
+        `${this.EXCHANGE_BASE_URL}/${fromCode}/${toCode}/${amount}`,
       );
 
       const data = await res.json();

@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Simple Cart Simulation</title>
+    <style>
+      * {
+        color: #fff;
+      }
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+        background-color: black;
+        columns: #fff;
+      }
+      #products,
+      #cart {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .card {
+        border: 1px solid #ccc;
+        padding: 10px;
+        width: 150px;
+        background-color: #ccc;
+        background: #000;
+      }
+      button {
+        margin-top: 5px;
+        background: linear-gradient(90deg, #00f, #0ff);
+        width: 100%;
+        color: #ccc;
+        border: none;
+        padding: 5px;
+        cursor: pointer;
+      }
+      input {
+        margin-bottom: 5px;
+        padding: 5px;
+        width: 200px;
+        background-color: #222;
+        border: 1px solid #555;
+        color: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <h1 style="color: #fff">Products</h1>
+
+    <div
+      style="
+        margin-bottom: 20px;
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+      "
+    >
+      <h3>Billing Address</h3>
+      <input
+        id="billingStreetAddress1"
+        value="456 Park Avenue"
+        placeholder="Street address 1"
+      /><br />
+      <input
+        id="billingStreetAddress2"
+        placeholder="Street address 2 (opt)"
+      /><br />
+      <input id="billingCity" value="Los Angeles" placeholder="City" /><br />
+      <input id="billingState" value="CA" placeholder="State" /><br />
+      <input
+        id="billingPostalCode"
+        value="90001"
+        placeholder="Postal code"
+      /><br />
+      <input id="billingCountry" value="USA" placeholder="Country" /><br />
+      <h3>Shipping Address</h3>
+      <input
+        id="shippingStreetAddress1"
+        value="123 Main Street"
+        placeholder="Street address 1"
+      /><br />
+      <input
+        id="shippingStreetAddress2"
+        placeholder="Street address 2 (opt)"
+      /><br />
+      <input id="shippingCity" value="New York" placeholder="City" /><br />
+      <input id="shippingState" value="NY" placeholder="State" /><br />
+      <input
+        id="shippingPostalCode"
+        value="10001"
+        placeholder="Postal code"
+      /><br />
+      <input id="shippingCountry" value="USA" placeholder="Country" /><br />
+    </div>
+    <div id="products"></div>
+
+    <h2>Your Cart</h2>
+    <div id="cart"></div>
+    <button id="checkoutBtn">Checkout</button>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script>
+      const SERVER_API_URL = "http://localhost:4000"; // change if server runs elsewhere
+      const productsEl = document.getElementById("products");
+      const cartEl = document.getElementById("cart");
+      const checkoutBtn = document.getElementById("checkoutBtn");
+      let cart = [];
+
+      function formatPrice(amount, currency = "INR") {
+        if (currency.toLowerCase() === "inr") {
+          return amount.toLocaleString("en-IN", {
+            style: "currency",
+            currency: "INR",
+            minimumFractionDigits: 2,
+          });
+        }
+        return amount.toLocaleString("en-US", {
+          style: "currency",
+          currency: currency.toUpperCase(),
+          minimumFractionDigits: 2,
+        });
+      }
+
+      async function loadProducts() {
+        try {
+          const res = await fetch(`${SERVER_API_URL}/api/products`);
+          const json = await res.json();
+          const products = json?.data?.products || [];
+          productsEl.innerHTML = "";
+          products.forEach((p) => {
+            const div = document.createElement("div");
+            div.className = "card";
+            div.innerHTML = `
+              <strong>${p.name}</strong><br>
+              <small class="muted">${p.category}</small><br>
+              ${p.description || ""}<br>
+              ${formatPrice(p.rates.inr, "inr")}<br>
+              <button class="add-to-cart-btn">Add</button>
+            `;
+            div
+              .querySelector("button")
+              .addEventListener("click", () => addToCart(p));
+            productsEl.appendChild(div);
+          });
+        } catch (e) {
+          console.error("error loading products", e);
+          productsEl.textContent = "Failed to load products";
+        }
+      }
+
+      function addToCart(product) {
+        const existing = cart.find((i) => i.productId === product.id);
+        if (existing) existing.quantity++;
+        else
+          cart.push({ productId: product.id, quantity: 1, name: product.name });
+        renderCart();
+      }
+
+      function renderCart() {
+        cartEl.innerHTML = "";
+        cart.forEach((i, idx) => {
+          const div = document.createElement("div");
+          div.innerHTML = `
+            ${i.name} × ${i.quantity}
+            <button data-index="${idx}" class="remove-btn">x</button>
+          `;
+          div.querySelector(".remove-btn").addEventListener("click", (e) => {
+            const index = Number(e.target.getAttribute("data-index"));
+            cart.splice(index, 1);
+            renderCart();
+          });
+          cartEl.appendChild(div);
+        });
+      }
+
+      async function checkout() {
+        if (cart.length === 0) {
+          alert("Cart is empty");
+          return;
+        }
+        const billing = {
+          streetAddress1: document.getElementById("billingStreetAddress1")
+            .value,
+          streetAddress2: document.getElementById("billingStreetAddress2")
+            .value,
+          city: document.getElementById("billingCity").value,
+          state: document.getElementById("billingState").value,
+          postalCode: document.getElementById("billingPostalCode").value,
+          country: document.getElementById("billingCountry").value,
+        };
+        const shipping = {
+          streetAddress1: document.getElementById("shippingStreetAddress1")
+            .value,
+          streetAddress2: document.getElementById("shippingStreetAddress2")
+            .value,
+          city: document.getElementById("shippingCity").value,
+          state: document.getElementById("shippingState").value,
+          postalCode: document.getElementById("shippingPostalCode").value,
+          country: document.getElementById("shippingCountry").value,
+        };
+        try {
+          const orderResp = await fetch(`${SERVER_API_URL}/api/orders`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              products: cart.map((i) => ({
+                productId: i.productId,
+                quantity: i.quantity,
+              })),
+              billingAddress: billing,
+              shippingAddress: shipping,
+            }),
+          });
+          const orderBody = await orderResp.json();
+          if (![200, 201].includes(orderResp.status)) {
+            console.error("order creation failed", orderBody);
+            alert("Order creation failed");
+            return;
+          }
+          const orderId = orderBody?.data?.order?.id;
+          if (!orderId) {
+            alert("Invalid order response");
+            return;
+          }
+          const intentResp = await fetch(
+            `${SERVER_API_URL}/api/payment/intent`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                orderId,
+                provider: "razorpay",
+                customerName: "Demo User",
+                customerEmail: "demo@example.com",
+                successUrl: `${SERVER_API_URL}/checkout/success`,
+              }),
+            },
+          );
+          const intent = await intentResp.json();
+          if (![200, 201].includes(intentResp.status)) {
+            console.error("intent error", intent);
+            alert("Payment intent failed");
+            return;
+          }
+          const { order, keyId } = intent;
+          if (!order || !keyId) {
+            alert("Missing payment data");
+            return;
+          }
+          new Razorpay({ key: keyId, order_id: order.id }).open();
+        } catch (err) {
+          console.error("checkout error", err);
+          alert("Checkout failed");
+        }
+      }
+
+      checkoutBtn.addEventListener("click", checkout);
+      loadProducts();
+    </script>
+  </body>
+</html>
