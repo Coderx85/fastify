@@ -344,7 +344,7 @@ describe("ProductService (real implementation, db mocked)", () => {
       const updateData: Partial<IProductDTO> = {
         name: "Updated Product",
         description: "Updated description",
-        amount: 150.00,
+        amount: 150.0,
         currency: "usd",
       };
 
@@ -386,8 +386,12 @@ describe("ProductService (real implementation, db mocked)", () => {
       assert.deepEqual(result, {
         ...dbProductRow,
         rates: {
-          usd: priceRowsSample.find(p => p.currencyType === "usd")?.priceAmount || 0,
-          inr: priceRowsSample.find(p => p.currencyType === "inr")?.priceAmount || 0,
+          usd:
+            priceRowsSample.find((p) => p.currencyType === "usd")
+              ?.priceAmount || 0,
+          inr:
+            priceRowsSample.find((p) => p.currencyType === "inr")
+              ?.priceAmount || 0,
         },
       });
     });
@@ -403,7 +407,7 @@ describe("ProductService (real implementation, db mocked)", () => {
       } as any);
 
       const { productService } = await import("./product.service");
-      
+
       try {
         await productService.updateProduct(1, {
           name: "Updated Product",
@@ -417,7 +421,7 @@ describe("ProductService (real implementation, db mocked)", () => {
 
     it("should handle currency conversion when updating price", async () => {
       const updateData: Partial<IProductDTO> = {
-        amount: 150.00,
+        amount: 150.0,
         currency: "inr", // Convert from USD to INR
       };
 
@@ -473,7 +477,7 @@ describe("ProductService (real implementation, db mocked)", () => {
 
     it("should handle errors during price update", async () => {
       const updateData: Partial<IProductDTO> = {
-        amount: 150.00,
+        amount: 150.0,
       };
 
       // Mock db.select() for findProductById check

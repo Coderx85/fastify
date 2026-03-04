@@ -21,10 +21,12 @@ const opt: FastifyServerOptions = {
 
 const app = await buildServer(opt);
 
-app.listen({ port: PORT }, (err, address) => {
+const server = app.listen({ port: PORT }, (err, address) => {
   if (err) {
     app.log.error(err);
     process.exit(1);
   }
   app.log.info(`Server listening at ${address}`);
 });
+
+export { app, server };

@@ -121,7 +121,11 @@ describe("OrderService - Unit Tests", () => {
     describe("createOrder - Payment Method Cases", () => {
       it("should map razorpay with usd to USD currency", async () => {
         // Arrange
-        const orderPayload = { ...mockOrderPolar, paymentMethod: "razorpay" as const, totalAmountCurrency: "usd" as const };
+        const orderPayload = {
+          ...mockOrderPolar,
+          paymentMethod: "razorpay" as const,
+          totalAmountCurrency: "usd" as const,
+        };
 
         // Assert
         expect(orderPayload.paymentMethod).toBe("razorpay");
@@ -138,7 +142,11 @@ describe("OrderService - Unit Tests", () => {
 
       it("should create order with razorpay-usd payment method", async () => {
         // Arrange
-        const orderPayload = { ...mockOrderPolar, paymentMethod: "razorpay" as const, totalAmountCurrency: "usd" as const };
+        const orderPayload = {
+          ...mockOrderPolar,
+          paymentMethod: "razorpay" as const,
+          totalAmountCurrency: "usd" as const,
+        };
 
         // Assert
         expect(orderPayload.paymentMethod).toBe("razorpay");
