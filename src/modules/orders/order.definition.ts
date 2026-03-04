@@ -78,6 +78,10 @@ export interface IOrderService {
   getAllOrders(
     options?: getAllOrdersOptions,
   ): Promise<{ orders: IOrderResult[]; total: number }>;
+  calculateTotalAmount(
+    products: { productId: number; quantity: number }[],
+    currency: TCurrency,
+  ): Promise<number>;
   // getOrdersByUserId(userId: number): Promise<IOrderResult[]>;
   // getAllOrders(options?: {
   //   userId?: number;

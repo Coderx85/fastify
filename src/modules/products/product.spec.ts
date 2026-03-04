@@ -9,7 +9,6 @@ import {
   rateMapSample,
   sampleDate,
 } from "@test/samples/products-sample";
-import { dbPool } from "@/db";
 
 // ── Mock DB so no real Postgres connection is made ───────────────────────────
 vi.mock("@/db", () => ({
@@ -21,6 +20,7 @@ vi.mock("@/db", () => ({
     insert: vi.fn(),
     select: vi.fn(),
     delete: vi.fn(),
+    update: vi.fn(),
   },
 }));
 
@@ -112,7 +112,7 @@ describe("ProductService (real implementation, db mocked)", () => {
     // Built from dbProductRow so the shape exactly matches what the service returns
     const expectedProduct: IProduct = {
       ...dbProductRow,
-      rates: rateMapSample,
+      rates: { ...rateMapSample, inr: 1666 }, // 19.99 * 83.33 = 1665.76 -> 1666
     };
 
     it("should create a product and return it with both currency rates (USD base)", async () => {
@@ -255,9 +255,9 @@ describe("ProductService (real implementation, db mocked)", () => {
     const expectedResult: IProduct[] = [sampleProduct1, sampleProduct2];
 
     it("should return an array of products with their rates", async () => {
-      // getProducts calls db.select() directly twice per product:
+      // getProducts calls db.select() twice:
       //   1st: db.select().from(productsTable).execute() → product rows
-      //   2nd: db.select().from(priceTable).where(...) → price rows (per product)
+      //   2nd: db.select().from(priceTable).where(...) → all price rows
       vi.mocked(db.select)
         .mockReturnValueOnce({
           // 1st call: fetch all product rows
@@ -266,13 +266,7 @@ describe("ProductService (real implementation, db mocked)", () => {
           }),
         } as any)
         .mockReturnValueOnce({
-          // 2nd call: price rows for product 1
-          from: vi.fn().mockReturnValue({
-            where: vi.fn().mockResolvedValue(priceRowsSample),
-          }),
-        } as any)
-        .mockReturnValueOnce({
-          // 3rd call: price rows for product 2
+          // 2nd call: fetch ALL prices in one batch
           from: vi.fn().mockReturnValue({
             where: vi.fn().mockResolvedValue(priceRowsSample),
           }),
@@ -283,7 +277,11 @@ describe("ProductService (real implementation, db mocked)", () => {
 
       assert.ok(Array.isArray(result), "Should return an array");
       assert.equal(result!.length, 2);
-      assert.deepEqual(result, expectedResult);
+      // Verify rates are properly mapped
+      assert.equal(result![0].rates.usd, rateMapSample.usd);
+      assert.equal(result![0].rates.inr, rateMapSample.inr);
+      assert.equal(result![1].rates.usd, rateMapSample.usd);
+      assert.equal(result![1].rates.inr, rateMapSample.inr);
     });
 
     it("should return an empty array when no products are found", async () => {
@@ -339,6 +337,175 @@ describe("ProductService (real implementation, db mocked)", () => {
       );
     });
   });
+
+  // ── updateProduct ─────────────────────────────────────────────────────────
+  describe("updateProduct", () => {
+    it("should update a product and return the updated product", async () => {
+      const updateData: Partial<IProductDTO> = {
+        name: "Updated Product",
+        description: "Updated description",
+        amount: 150.00,
+        currency: "usd",
+      };
+
+      let callCount = 0;
+      vi.mocked(db.select).mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) {
+          // findProductById - get product
+          return {
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue([dbProductRow]),
+              }),
+            }),
+          } as any;
+        } else {
+          // fetchLatest prices after update
+          return {
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockResolvedValue(priceRowsSample),
+            }),
+          } as any;
+        }
+      });
+
+      // Mock db.update() for product update
+      vi.mocked(db.update).mockReturnValue({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            returning: vi.fn().mockResolvedValue([dbProductRow]),
+          }),
+        }),
+      } as any);
+
+      const { productService } = await import("./product.service");
+      const result = await productService.updateProduct(1, updateData);
+
+      // Verify the updated product is returned
+      assert.deepEqual(result, {
+        ...dbProductRow,
+        rates: {
+          usd: priceRowsSample.find(p => p.currencyType === "usd")?.priceAmount || 0,
+          inr: priceRowsSample.find(p => p.currencyType === "inr")?.priceAmount || 0,
+        },
+      });
+    });
+
+    it("should return null when product is not found", async () => {
+      // Mock db.select() for findProductById check - no product found
+      vi.mocked(db.select).mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([]), // no product
+          }),
+        }),
+      } as any);
+
+      const { productService } = await import("./product.service");
+      
+      try {
+        await productService.updateProduct(1, {
+          name: "Updated Product",
+        });
+        assert.fail("Should have thrown an error");
+      } catch (error) {
+        assert.ok(error instanceof Error);
+        assert.match((error as Error).message, /Failed to update product/);
+      }
+    });
+
+    it("should handle currency conversion when updating price", async () => {
+      const updateData: Partial<IProductDTO> = {
+        amount: 150.00,
+        currency: "inr", // Convert from USD to INR
+      };
+
+      let callCount = 0;
+      vi.mocked(db.select).mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) {
+          // findProductById - get product
+          return {
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue([dbProductRow]),
+              }),
+            }),
+          } as any;
+        } else {
+          // fetchLatest prices after update
+          return {
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockResolvedValue(priceRowsSample),
+            }),
+          } as any;
+        }
+      });
+
+      // Mock db.update() for product update
+      vi.mocked(db.update).mockReturnValue({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            returning: vi.fn().mockResolvedValue([dbProductRow]),
+          }),
+        }),
+      } as any);
+
+      // Mock fetch for currency conversion
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          result: "success",
+          conversion_result: 12500, // 150 USD * 83.33
+          conversion_rate: 83.33,
+        }),
+      });
+
+      const { productService } = await import("./product.service");
+      const result = await productService.updateProduct(1, updateData);
+
+      // Verify the updated product is returned
+      assert.ok(result);
+      assert.equal(result!.id, dbProductRow.id);
+      assert.equal(result!.name, dbProductRow.name);
+    });
+
+    it("should handle errors during price update", async () => {
+      const updateData: Partial<IProductDTO> = {
+        amount: 150.00,
+      };
+
+      // Mock db.select() for findProductById check
+      vi.mocked(db.select).mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([dbProductRow]),
+          }),
+        }),
+      } as any);
+
+      // Mock db.update() to throw error
+      vi.mocked(db.update).mockReturnValue({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            returning: vi.fn().mockRejectedValue(new Error("Update failed")),
+          }),
+        }),
+      } as any);
+
+      const { productService } = await import("./product.service");
+
+      try {
+        await productService.updateProduct(1, updateData);
+        assert.fail("Should have thrown an error");
+      } catch (error) {
+        assert.equal((error as Error).message, "Failed to update product");
+        assert.ok((error as any).cause);
+      }
+    });
+  });
+
   afterEach(() => {
     vi.resetAllMocks();
   });

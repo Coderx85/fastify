@@ -8,12 +8,13 @@ import {
 } from "./payment.definition";
 import { CurrencyType as Currency } from "@/modules/currency/currency.service";
 import { razorpayService } from "./razorpay.service";
-import { polarService } from "./polar.service";
 import { OrderService } from "../orders/order.service";
 import {
   currencyService,
   type PaymentMethod,
 } from "@/modules/currency/currency.service";
+import { IOrderCreateInput } from "../orders/order.definition";
+import { config } from "@/lib/config";
 
 /**
  * High-level payment service used by the e‑commerce order flow.
@@ -26,7 +27,7 @@ import {
 export class PaymentService implements IPaymentService {
   constructor(
     private razor = razorpayService,
-    private polar = polarService,
+    // private polar = polarService,
     private orderService = new OrderService(),
   ) {}
 
@@ -34,19 +35,24 @@ export class PaymentService implements IPaymentService {
    * Start a payment for an order.  The caller must supply the exact order
    * input (matching IOrderInput from the orders module) as well as the
    * user id so we can create the order later.
+   *
+   * Uses Razorpay as the sole payment provider.
    */
   async initiatePayment(
-    orderInput: Parameters<OrderService["createOrder"]>[0],
+    orderInput: IOrderCreateInput,
     userId: number,
   ): Promise<PaymentIntentResult> {
     if (!orderInput || typeof userId !== "number") {
       throw new PaymentValidationError("orderInput and userId are required");
     }
 
-    // determine currency from payment method; currencyService knows the map
-    const currency = currencyService.getCurrencyByPaymentMethod(
-      orderInput.paymentMethod as PaymentMethod,
-    ) as Currency;
+    // Use requested currency if provided, otherwise derive from payment method
+    let currency: Currency = orderInput.totalAmountCurrency as Currency;
+    if (!currency) {
+      currency = currencyService.getCurrencyByPaymentMethod(
+        orderInput.paymentMethod as PaymentMethod,
+      ) as Currency;
+    }
 
     if (!currency) {
       throw new UnsupportedCurrencyError(
@@ -54,40 +60,37 @@ export class PaymentService implements IPaymentService {
       );
     }
 
+    // Razorpay supports both INR and USD (for international accounts)
+    if (currency !== "inr" && currency !== "usd") {
+      throw new UnsupportedCurrencyError(
+        `Currency ${currency} is not supported. Only INR and USD are supported for Razorpay.`,
+      );
+    }
+
     const metadata: PaymentMetadata = { orderInput, userId };
     const metaString = JSON.stringify(metadata);
 
-    if (currency === "inr") {
+    try {
+      // Use Razorpay for all payments
       // razorpay requires numeric orderId; we don't yet have one so pass 0
       const { order, internalOrderId } = await this.razor.createOrder(0, {
-        metadata: { orderPayload: metaString },
+        metadata: { 
+          orderPayload: metaString, 
+          amount: String(orderInput.totalAmount || 0),
+          currency: currency.toUpperCase()
+        },
       });
 
       return {
         provider: "razorpay",
         providerOrderId: order.id,
+        razorpayKeyId: config.RAZORPAY_KEY_ID,
         raw: { order, internalOrderId },
       };
+    } catch (err) {
+      console.error("Failed to create Razorpay order:", err);
+      throw err;
     }
-
-    if (currency === "usd") {
-      const checkout = await this.polar.createCheckout({
-        customerEmail: orderInput.billingAddress?.streetAddress1 || "",
-        customerName: orderInput.shippingAddress?.city || "",
-        externalCustomerId: String(userId),
-        metadata: { orderPayload: metaString },
-      });
-
-      return {
-        provider: "polar",
-        providerOrderId: checkout.checkoutId,
-        checkoutUrl: checkout.checkoutUrl,
-        raw: checkout,
-      };
-    }
-
-    // should never happen due to earlier check
-    throw new UnsupportedCurrencyError(currency);
   }
 
   async handleRazorpayWebhook(rawBody: string, signature: string) {
@@ -126,21 +129,22 @@ export class PaymentService implements IPaymentService {
     }
   }
 
-  async handlePolarWebhook(payload: any) {
-    // Polar library already verified signature before invoking config
-    const eventType: string = payload.type;
+  // COMMENTED OUT: Polar webhook handling - Using Razorpay only
+  // async handlePolarWebhook(payload: any) {
+  //   // Polar library already verified signature before invoking config
+  //   const eventType: string = payload.type;
 
-    // we only care about orders that completed (paid is safe)
-    if (eventType === "order.paid" || eventType === "order.created") {
-      const metadata = payload.data?.metadata;
-      if (metadata && metadata.orderPayload) {
-        const { orderInput, userId } = JSON.parse(
-          metadata.orderPayload,
-        ) as PaymentMetadata;
-        await this.orderService.createOrder(orderInput, userId);
-      }
-    }
-  }
+  //   // we only care about orders that completed (paid is safe)
+  //   if (eventType === "order.paid" || eventType === "order.created") {
+  //     const metadata = payload.data?.metadata;
+  //     if (metadata && metadata.orderPayload) {
+  //       const { orderInput, userId } = JSON.parse(
+  //         metadata.orderPayload,
+  //       ) as PaymentMetadata;
+  //       await this.orderService.createOrder(orderInput, userId);
+  //     }
+  //   }
+  // }
 }
 
 export const paymentService = new PaymentService();

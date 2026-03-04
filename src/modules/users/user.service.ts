@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { usersTable } from "@/db/schema";
+import { usersTable, type TUser } from "@/db/schema";
 import { createIdInNumber, generateUUID } from "@/lib/uuid";
 import type {
   CreateUserInput,
@@ -104,7 +104,7 @@ class UserService implements IUserService {
     }
   }
 
-  async findUserForAuth(email: string): Promise<IUser | null> {
+  async findUserForAuth(email: string): Promise<TUser | null> {
     try {
       const [user] = await getUserForAuthStatement.execute({ email });
       return user || null;
@@ -183,6 +183,32 @@ class UserService implements IUserService {
     } catch (error) {
       console.error("Error getting all users:", error);
       throw new DatabaseError("Failed to retrieve users");
+    }
+  }
+
+  async deleteUser(id: number): Promise<{ message: string }> {
+    try {
+      // Check if user exists before deleting
+      const user = await this.getUserById(id);
+
+      if (!user) {
+        throw new Error("User not found", {
+          cause: { code: "USER_NOT_FOUND" },
+        });
+      }
+
+      await db.delete(usersTable).where(eq(usersTable.id, id));
+
+      return {
+        message: "User deleted successfully",
+      };
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      // Preserve the cause code if it exists (e.g., USER_NOT_FOUND)
+      throw new DatabaseError(
+        "Failed to delete user",
+        (error as any)?.code || (error as any)?.cause?.code,
+      );
     }
   }
 }

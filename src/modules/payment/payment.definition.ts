@@ -16,8 +16,8 @@ export interface PaymentMetadata {
 export interface PaymentIntentResult {
   provider: PaymentProvider;
   providerOrderId: string;
+  razorpayKeyId?: string;
   checkoutUrl?: string;
-  // provider-specific raw response can be included for testing/debugging
   raw?: any;
 }
 
@@ -33,11 +33,8 @@ export interface IPaymentService {
    */
   handleRazorpayWebhook(rawBody: string, signature: string): Promise<void>;
 
-  /**
-   * Process a webhook coming from Polar.  The Fastify helper already
-   * validates the secret so we just receive the parsed payload.
-   */
-  handlePolarWebhook(payload: any): Promise<void>;
+  // COMMENTED OUT: Polar webhook handling - Using Razorpay only
+  // handlePolarWebhook(payload: any): Promise<void>;
 }
 
 // --------- custom errors ---------
@@ -78,8 +75,9 @@ export interface IPaymentController {
     reply: FastifyReply,
   ): Promise<void>;
 
-  handlePolarWebhookHandler(
-    request: FastifyRequest,
-    reply: FastifyReply,
-  ): Promise<void>;
+  // COMMENTED OUT: Polar webhook handler - Using Razorpay only
+  // handlePolarWebhookHandler(
+  //   request: FastifyRequest,
+  //   reply: FastifyReply,
+  // ): Promise<void>;
 }

@@ -28,12 +28,12 @@ describe("CurrencyService", () => {
       expect(currency).toBe("inr");
     });
 
-    it("should map polar to USD", () => {
+    it("should map razorpay to INR", () => {
       // Act
-      const currency = service.getCurrencyByPaymentMethod("polar");
+      const currency = service.getCurrencyByPaymentMethod("razorpay");
 
       // Assert
-      expect(currency).toBe("usd");
+      expect(currency).toBe("inr");
     });
 
     it("should throw error for unknown payment method", () => {
@@ -51,18 +51,10 @@ describe("CurrencyService", () => {
       expect(paymentMethod).toBe("razorpay");
     });
 
-    it("should return polar for USD currency", () => {
-      // Act
-      const paymentMethod = service.getPaymentMethodByCurrency("usd");
-
-      // Assert
-      expect(paymentMethod).toBe("polar");
-    });
-
-    it("should throw error for unknown currency", () => {
+    it("should throw error for unsupported currency", () => {
       // Assert
       expect(() => {
-        service.getPaymentMethodByCurrency("gbp" as CurrencyType);
+        service.getPaymentMethodByCurrency("aud" as CurrencyType);
       }).toThrow();
     });
   });
@@ -142,9 +134,9 @@ describe("CurrencyService", () => {
       // API rate is approximately 0.01098-0.011, not exactly 0.012
       expect(result.exchangeRate).toBeGreaterThan(0.01);
       expect(result.exchangeRate).toBeLessThan(0.013);
-      // Should be around 10.98-11.20
+      // Should be around 10.98-11.20 @ 0.011 rate, or 12.0 @ 0.012 rate
       expect(result.convertedAmount).toBeGreaterThan(10);
-      expect(result.convertedAmount).toBeLessThan(12);
+      expect(result.convertedAmount).toBeLessThanOrEqual(12);
     });
 
     it("should convert USD to INR correctly", async () => {
@@ -169,7 +161,7 @@ describe("CurrencyService", () => {
       expect(result.originalAmount).toBe(99.99);
       // 99.99 * ~0.011 = ~1.1, accounting for API rate variation
       expect(result.convertedAmount).toBeGreaterThan(1.0);
-      expect(result.convertedAmount).toBeLessThan(1.2);
+      expect(result.convertedAmount).toBeLessThanOrEqual(1.2);
       expect(result.fromCurrency).toBe("inr");
       expect(result.toCurrency).toBe("usd");
     });
@@ -303,9 +295,9 @@ describe("CurrencyService", () => {
       expect(result.convertedAmount).toBeGreaterThan(amount * 10);
     });
 
-    it("should work with polar to USD conversion", async () => {
+    it("should work with razorpay conversion", async () => {
       // Arrange
-      const paymentMethod: PaymentMethod = "polar";
+      const paymentMethod: PaymentMethod = "razorpay";
       const amount = 120;
 
       // Act
@@ -313,16 +305,16 @@ describe("CurrencyService", () => {
       const result = await service.convertCurrency(amount, "inr", currency);
 
       // Assert
-      expect(currency).toBe("usd");
-      expect(result.toCurrency).toBe("usd");
-      // Verify amount is properly converted (should be much smaller in USD)
-      expect(result.convertedAmount).toBeLessThan(amount / 10);
+      expect(currency).toBe("inr");
+      expect(result.toCurrency).toBe("inr");
+      // Verify amount stays same (INR to INR)
+      expect(result.convertedAmount).toBe(amount);
     });
 
     it("should handle complete order workflow", async () => {
       // Arrange
       const orderAmount = 10000; // in INR
-      const paymentMethod: PaymentMethod = "polar";
+      const paymentMethod: PaymentMethod = "razorpay";
 
       // Act
       const orderCurrency = service.getCurrencyByPaymentMethod(paymentMethod);
@@ -333,11 +325,12 @@ describe("CurrencyService", () => {
       );
 
       // Assert
-      expect(conversion.toCurrency).toBe("usd");
+      expect(conversion.toCurrency).toBe("inr");
       expect(conversion.convertedAmount).toBeGreaterThan(0);
-      // Order amount in USD should be ~12 (10000 * 0.012)
-      expect(conversion.convertedAmount).toBeLessThan(200);
-      expect(conversion.exchangeRate).toBe(0.012);
+      // Order amount in INR should be same as input
+      expect(conversion.convertedAmount).toBe(orderAmount);
+      expect(conversion.convertedAmount).toBe(10000);
+      expect(conversion.exchangeRate).toBe(1);
     });
   });
 

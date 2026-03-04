@@ -7,6 +7,7 @@ import {
   productsTable,
   TCurrency,
   TOrder,
+  TProduct,
 } from "@/db/schema";
 import { ProductService } from "../products/product.service";
 import {
@@ -28,7 +29,8 @@ import {
   type PaymentMethod,
   type CurrencyType,
 } from "@/modules/currency/currency.service";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, is } from "drizzle-orm";
+import { getUser } from "@/middleware/auth.middleware";
 
 type findOrderOptions = getAllOrdersOptions & {
   orderId?: number;
@@ -54,10 +56,6 @@ export class OrderService implements IOrderService {
     from: DefinitionCurrency,
     to: DefinitionCurrency,
   ): Promise<{ amount: number; rate: number }> {
-    if (from === to) {
-      return { amount, rate: 1 };
-    }
-
     const result = await currencyService.convertCurrency(
       amount,
       from as CurrencyType,
@@ -74,10 +72,6 @@ export class OrderService implements IOrderService {
    * Validate order input data
    */
   private validateOrderInput(data: IOrderInput): void {
-    if (!data.userId) {
-      throw new OrderValidationError("User ID is required");
-    }
-
     if (!data.paymentMethod) {
       throw new OrderValidationError("Payment method is required");
     }
@@ -115,7 +109,7 @@ export class OrderService implements IOrderService {
    */
   private async validateProductsExist(
     productIds: number[],
-  ): Promise<Record<number, any>> {
+  ): Promise<Record<number, TProduct>> {
     const products = await db
       .select()
       .from(productsTable)
@@ -125,7 +119,7 @@ export class OrderService implements IOrderService {
           : inArray(productsTable.id, productIds),
       );
 
-    const productMap: Record<number, any> = {};
+    const productMap: Record<number, TProduct> = {};
     for (const product of products) {
       productMap[product.id] = product;
     }
@@ -156,7 +150,7 @@ export class OrderService implements IOrderService {
   }): Promise<findOrderResponse> {
     const { orderId, userId, status, limit, offset } = options || {};
 
-    let whereconditions = [];
+    const whereconditions = [];
 
     if (orderId) {
       whereconditions.push(eq(ordersTable.id, orderId));
@@ -181,9 +175,8 @@ export class OrderService implements IOrderService {
       throw new Error("Orders not found");
     }
 
-    let orders: IOrderResult[] = [];
+    const orders: IOrderResult[] = [];
     for (const order of orderRecord) {
-      let orderItem: IOrderResult;
       // Fetch order items
       const orderItems = await db
         .select()
@@ -191,17 +184,26 @@ export class OrderService implements IOrderService {
         .where(eq(orderProductTable.orderId, order.id));
 
       // Fetch addresses
-      const [shippingAddr] = await db
-        .select()
-        .from(addressesTable)
-        .where(eq(addressesTable.id, order.shippingAddressId))
-        .limit(1);
+      let shippingAddr: typeof addressesTable.$inferSelect | undefined;
+      let billingAddr: typeof addressesTable.$inferSelect | undefined;
 
-      const [billingAddr] = await db
-        .select()
-        .from(addressesTable)
-        .where(eq(addressesTable.id, order.billingAddressId))
-        .limit(1);
+      if (order.shippingAddressId) {
+        const [addr] = await db
+          .select()
+          .from(addressesTable)
+          .where(eq(addressesTable.id, order.shippingAddressId))
+          .limit(1);
+        shippingAddr = addr;
+      }
+
+      if (order.billingAddressId) {
+        const [addr] = await db
+          .select()
+          .from(addressesTable)
+          .where(eq(addressesTable.id, order.billingAddressId))
+          .limit(1);
+        billingAddr = addr;
+      }
 
       // Calculate pricing information
       const pricing: IOrderPricing = {
@@ -243,12 +245,52 @@ export class OrderService implements IOrderService {
       .where(eq(ordersTable.id, orderId));
   }
 
+  async calculateTotalAmount(
+    products: { productId: number; quantity: number }[],
+    currency: CurrencyType,
+    tx: any = db,
+  ): Promise<number> {
+    if (products.length === 0) return 0;
+
+    const productIds = products.map((item) => item.productId);
+    
+    // Batch fetch all requested prices
+    const priceRecords = await db
+      .select()
+      .from(productsPriceTables)
+      .where(
+        and(
+          inArray(productsPriceTables.productId, productIds),
+          eq(productsPriceTables.currencyType, currency),
+        ),
+      );
+
+    const priceMap = new Map<number, number>();
+    for (const record of priceRecords) {
+      priceMap.set(record.productId, record.priceAmount);
+    }
+
+    let total = 0;
+    for (const item of products) {
+      const price = priceMap.get(item.productId);
+      
+      if (price !== undefined) {
+        total += price * item.quantity;
+      } else {
+        // Fallback for individual products not in cache
+        const fallbackPrice = await this.getProductPrice(item.productId, currency);
+        total += fallbackPrice * item.quantity;
+      }
+    }
+    return total;
+  }
+
   /**
    * Get product price in a specific currency
    */
   private async getProductPrice(
     productId: number,
-    currency: DefinitionCurrency,
+    currency: CurrencyType,
   ): Promise<number> {
     const [priceRecord] = await db
       .select()
@@ -261,13 +303,31 @@ export class OrderService implements IOrderService {
       )
       .limit(1);
 
-    if (!priceRecord) {
+    if (priceRecord) {
+      return priceRecord.priceAmount;
+    }
+
+    // Fallback: try to find ANY price for this product
+    const [fallbackRecord] = await db
+      .select()
+      .from(productsPriceTables)
+      .where(eq(productsPriceTables.productId, productId))
+      .limit(1);
+
+    if (!fallbackRecord) {
       throw new Error(
-        `Price not found for product ${productId} in currency ${currency}`,
+        `No price found for product ${productId} in any currency`,
       );
     }
 
-    return priceRecord.priceAmount;
+    // Convert from the fallback currency to the requested currency
+    const result = await currencyService.convertCurrency(
+      fallbackRecord.priceAmount,
+      fallbackRecord.currencyType as CurrencyType,
+      currency,
+    );
+
+    return result.convertedAmount;
   }
 
   /**
@@ -278,49 +338,27 @@ export class OrderService implements IOrderService {
     this.validateOrderInput(data);
 
     return await dbPool.transaction(async (tx) => {
-      // Determine order currency based on payment method
-      const orderCurrency = currencyService.getCurrencyByPaymentMethod(
-        data.paymentMethod as PaymentMethod,
-      ) as DefinitionCurrency;
-
       // Get unique product IDs
       const productIds = [...new Set(data.products.map((p) => p.productId))];
 
       // Validate all products exist
       const productMap = await this.validateProductsExist(productIds);
 
-      // Calculate total amount in order currency
-      let totalAmountInINR = 0;
-      let totalAmountInOrderCurrency = 0;
-      let exchangeRate = 1;
-
-      for (const item of data.products) {
-        const price = await this.getProductPrice(item.productId, orderCurrency);
-        totalAmountInOrderCurrency += price * item.quantity;
-
-        // Also calculate in INR for reference
-        if (orderCurrency === "usd") {
-          const priceInINR = await this.getProductPrice(item.productId, "inr");
-          totalAmountInINR += priceInINR * item.quantity;
-        } else {
-          totalAmountInINR += price * item.quantity;
-        }
+      if (!productMap) {
+        throw new Error("One or more products not found");
       }
 
-      // Calculate exchange rate if conversion is needed
-      if (orderCurrency === "usd") {
-        const conversion = await this.convertPrice(
-          totalAmountInINR,
-          "inr",
-          "usd",
-        );
-        exchangeRate = conversion.rate;
-      }
+      const totalAmountInOrderCurrency = await this.calculateTotalAmount(
+        data.products,
+        data.totalAmountCurrency,
+        tx,
+      );
 
       // Create or fetch shipping address
       let shippingAddressId: number;
       const [existingShippingAddress] = await tx
         .select()
+
         .from(addressesTable)
         .where(
           and(
@@ -345,7 +383,6 @@ export class OrderService implements IOrderService {
             state: data.shippingAddress.state,
             postalCode: data.shippingAddress.postalCode,
             country: data.shippingAddress.country,
-            isDefault: data.shippingAddress.isDefault ?? false,
           })
           .returning();
 
@@ -367,7 +404,6 @@ export class OrderService implements IOrderService {
             state: data.billingAddress.state,
             postalCode: data.billingAddress.postalCode,
             country: data.billingAddress.country,
-            isDefault: data.billingAddress.isDefault ?? false,
           })
           .returning();
 
@@ -383,7 +419,7 @@ export class OrderService implements IOrderService {
         .values({
           userId,
           totalAmount: Math.round(totalAmountInOrderCurrency * 100), // Store in smallest unit
-          totalAmountCurrency: orderCurrency,
+          totalAmountCurrency: data.totalAmountCurrency,
           status: "processing",
           paymentMethod: data.paymentMethod,
           shippingAddressId,
@@ -396,7 +432,10 @@ export class OrderService implements IOrderService {
       const orderItems: IOrderItemOutput[] = [];
 
       for (const item of data.products) {
-        const price = await this.getProductPrice(item.productId, orderCurrency);
+        const price = await this.getProductPrice(
+          item.productId,
+          data.totalAmountCurrency,
+        );
 
         const [orderProduct] = await tx
           .insert(orderProductTable)
@@ -418,6 +457,15 @@ export class OrderService implements IOrderService {
         });
       }
 
+      const exchangeRate = await currencyService.getExchangeRate(
+        data.totalAmountCurrency as CurrencyType,
+        data.totalAmountCurrency === "inr" ? "usd" : "inr",
+      );
+
+      if (!exchangeRate) {
+        throw new Error("Failed to fetch exchange rate for order pricing");
+      }
+
       // Fetch address details
       const [shippingAddr] = await tx
         .select()
@@ -433,9 +481,9 @@ export class OrderService implements IOrderService {
 
       // Calculate pricing information
       const pricing: IOrderPricing = {
-        originalAmount: totalAmountInINR,
+        originalAmount: totalAmountInOrderCurrency,
         convertedAmount: totalAmountInOrderCurrency,
-        currency: orderCurrency,
+        currency: data.totalAmountCurrency,
         exchangeRate,
       };
 

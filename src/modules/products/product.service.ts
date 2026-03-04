@@ -13,7 +13,7 @@ import {
   RateMap,
 } from "@/modules/products/product.definition";
 import { currencyService } from "@/modules/currency/currency.service";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 
 export class ProductService implements IProductService {
   /**
@@ -155,33 +155,32 @@ export class ProductService implements IProductService {
   }
 
   async getProducts(): Promise<IProduct[] | null> {
-    let baseProducts: IProduct[] = [];
     try {
       const products = await db.select().from(product).execute();
 
-      if (products.length === 0) return baseProducts;
+      if (products.length === 0) return [];
 
-      for (const productRecord of products) {
-        const priceRecords = await db
-          .select()
-          .from(productsPriceTables)
-          .where(eq(productsPriceTables.productId, productRecord.id));
+      // Batch fetch ALL prices in a single query instead of N+1
+      const productIds = products.map((p) => p.id);
+      const allPriceRecords = await db
+        .select()
+        .from(productsPriceTables)
+        .where(inArray(productsPriceTables.productId, productIds));
 
-        const rates: RateMap = {
-          inr: 0,
-          usd: 0,
-        };
-
-        for (const price of priceRecords) {
-          rates[price.currencyType] = price.priceAmount;
+      // Group prices by productId for O(1) lookup
+      const pricesByProduct = new Map<number, RateMap>();
+      for (const price of allPriceRecords) {
+        if (!pricesByProduct.has(price.productId)) {
+          pricesByProduct.set(price.productId, { inr: 0, usd: 0 });
         }
-
-        baseProducts.push({
-          ...productRecord,
-          rates,
-        });
+        pricesByProduct.get(price.productId)![price.currencyType] =
+          price.priceAmount;
       }
-      return baseProducts;
+
+      return products.map((productRecord) => ({
+        ...productRecord,
+        rates: pricesByProduct.get(productRecord.id) ?? { inr: 0, usd: 0 },
+      }));
     } catch (error) {
       throw new Error("Failed to fetch products", {
         cause: error,

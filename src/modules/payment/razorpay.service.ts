@@ -2,14 +2,24 @@ import Razorpay from "razorpay";
 import crypto from "crypto";
 import { config } from "@/lib/config";
 import { db } from "@/db";
-import { ordersTable as orders, paymentsTable as payments } from "@/db/schema";
+import {
+  ordersTable as orders,
+  paymentsTable as payments,
+  addressesTable,
+} from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { STATUS_CODES } from "http";
+import { CreateOrderInput, CreateOrderOutput } from "@/schema/order.schema";
+import { userService } from "../users/user.service";
+import { orderService } from "../orders/order.service";
+import { createOrderId } from "@/lib/uuid";
+
+import { getUser } from "@/middleware/auth.middleware";
 
 type Options = {
-  amount: number;
-  currency: string;
-  receipt: string;
+  amount: number; // in paisa for INR
+  currency: string; // Razorpay requires uppercase ISO 4217 codes e.g. "INR"
+  receipt?: string;
   payment_capture: number;
   notes: Record<string, string>;
 };
@@ -23,6 +33,11 @@ type Options = {
  */
 class RazorpayService {
   private client: Razorpay | null = null;
+  private orderService = orderService;
+
+  constructor() {
+    this.orderService = orderService;
+  }
 
   private getClient(): Razorpay {
     if (!config.RAZORPAY_KEY_ID || !config.RAZORPAY_KEY_SECRET) {
@@ -72,41 +87,23 @@ class RazorpayService {
     }
 
     if (!orderRecord) {
-      const [createdOrder] = await db
-        .insert(orders)
-        .values({
-          totalAmountCurrency: "usd",
-          userId: opts?.externalCustomerId
-            ? Number(opts.externalCustomerId) || 1
-            : 1,
-          totalAmount: 300,
-          status: "processing",
-          billingAddressId: 1, // Placeholder, should be updated to use actual address ID
-          shippingAddressId: 1, // Placeholder, should be updated to use actual address ID
-          paymentMethod: "razorpay",
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .returning();
-      orderRecord = createdOrder;
-      internalOrderId = createdOrder.id;
+      // For payment initiation, we don't create a full order yet.
+      // The order will be created when the webhook confirms payment.
+      // Just create the Razorpay order and store metadata.
+      internalOrderId = 0; // No internal order ID yet
     }
 
-    if (!orderRecord || !internalOrderId) {
-      throw new Error("Order creation failed", { cause: STATUS_CODES[500] });
-    }
-
-    // Determine amount in smallest currency unit for Razorpay
-    const currency = config.RAZORPAY_CURRENCY || "INR";
-
-    const amount =
-      currency === "INR"
-        ? orderRecord.totalAmount * 100
-        : orderRecord.totalAmount;
+    // Continue with Razorpay order creation regardless of whether we have an internal order
+    const currency = (opts?.metadata?.currency as string) || "INR";
+    
+    // Both INR and USD use 100 as the multiplier for smallest unit (Paisa/Cents)
+    const totalAmountInSmallestUnit = opts?.metadata?.amount
+      ? Math.round(Number(opts.metadata.amount) * 100)
+      : 0;
 
     const options: Options = {
-      amount: amount,
-      currency,
+      amount: totalAmountInSmallestUnit,
+      currency: currency,
       receipt: `order_${internalOrderId}`,
       payment_capture: 1,
       notes: {
@@ -132,25 +129,9 @@ class RazorpayService {
       throw new Error("Failed to create Razorpay order");
     }
 
-    // Persist pending payment row connected to the *internal* order id
-    const dbCurrency = ["usd"].includes((currency || "").toLowerCase())
-      ? ((currency || "").toLowerCase() as "usd")
-      : "usd";
-
-    try {
-      await db.insert(payments).values({
-        id: created.id,
-        orderId: internalOrderId,
-        amount: orderRecord.totalAmount,
-        currency: dbCurrency,
-        status: "pending",
-        paymentMethod: "razorpay",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-    } catch (err) {
-      console.error("Failed to persist Razorpay payment to DB:", err);
-    }
+    // Note: We only insert the payment record after the webhook confirms payment.
+    // During payment initiation, we don't have a valid orderId yet, so we skip
+    // the database insert here. The payment is persisted when the webhook is received.
 
     return { order: created, internalOrderId };
   }
@@ -192,13 +173,77 @@ class RazorpayService {
   }
 
   async initialize() {
-    // This method can be used to perform any startup initialization if needed
-
-    const razorpayClient = this.getClient(); // Ensure Razorpay client is initialized.
-
-    razorpayClient.payments;
-
+    // Ensure Razorpay client is initialized on startup
+    this.getClient();
     console.log("RazorpayService initialized");
+  }
+
+  async processOrderPayment(orderInput: CreateOrderInput) {
+    // This method can be used to process an order payment, e.g., by creating a Razorpay order
+
+    try {
+      const razorpay = this.getClient();
+
+      const dummyUser = await getUser();
+      const userId = dummyUser.id;
+
+      const user = await userService.getUserById(userId);
+
+      if (!user) {
+        throw new Error("User not found for order payment processing");
+      }
+
+      const totalAmountInPaisas =
+        (await this.orderService.calculateTotalAmount(
+          orderInput.products,
+          "inr",
+        )) * 100;
+
+      const Options: Options = {
+        amount: totalAmountInPaisas,
+        currency: "INR",
+        receipt: `order_${orderInput.id}`,
+        payment_capture: 1,
+        notes: {
+          internalOrderId: String(orderInput.id),
+          customerEmail: user.email,
+          customerName: user.name,
+        },
+      };
+
+      const payment = await razorpay.orders.create(Options);
+
+      if (payment.status === "paid") {
+        // Create internal order record and persist payment info
+        const totalAmount = await this.orderService.calculateTotalAmount(
+          orderInput.products,
+          "inr",
+        );
+
+        const order = await orderService.createOrder(
+          {
+            id: orderInput.id,
+            userId,
+            paymentMethod: "razorpay",
+            totalAmount,
+            totalAmountCurrency: "inr",
+            notes: orderInput.notes || "",
+            billingAddress: orderInput.billingAddress,
+            shippingAddress: orderInput.shippingAddress,
+            products: orderInput.products,
+          },
+          userId,
+        );
+
+        return { order, payment };
+      } else {
+        throw new Error(`Payment failed with status: ${payment.status}`);
+      }
+    } catch (error: unknown) {
+      throw new Error(`Failed to process order payment: ${error}`, {
+        cause: error,
+      });
+    }
   }
 }
 

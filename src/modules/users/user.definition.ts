@@ -20,12 +20,13 @@ export interface IUserService {
    * Returns a user record by email including the password hash.
    * To be used only for authentication purposes.
    */
-  findUserForAuth(email: string): Promise<IUser | null>;
+  findUserForAuth(email: string): Promise<TUser | null>;
 
   getUserById(id: number): Promise<SafeUser | null>;
   createUser(data: CreateUserInput): Promise<SafeUser>;
   updateUser(id: number, data: UpdateUserInput): Promise<SafeUser | null>;
   getAllUsers(): Promise<IUser[]>;
+  deleteUser(id: number): Promise<{ message: string }>;
 }
 
 export interface IUserController {
@@ -59,6 +60,10 @@ export interface IUserController {
       Params: { id: number };
       Body: UpdateUserInput;
     }>,
+    reply: FastifyReply,
+  ): Promise<void>;
+  deleteUserHandler(
+    request: FastifyRequest<{ Params: { id: number } }>,
     reply: FastifyReply,
   ): Promise<void>;
 }

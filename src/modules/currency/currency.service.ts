@@ -1,7 +1,7 @@
 import { config } from "@/lib/config";
 
 export type CurrencyType = "inr" | "usd";
-export type PaymentMethod = "razorpay" | "polar";
+export type PaymentMethod = "razorpay";
 
 export interface ExchangeRateData {
   from: CurrencyType;
@@ -33,12 +33,11 @@ export class CurrencyService {
   private exchangeRates: Map<string, ExchangeRateData> = new Map();
   private readonly CACHE_DURATION_MS = 3600000; // 1 hour
 
-  private readonly EXCHANGE_BASE_URL = `https://v6.exchangerate-api.com/v6${config.EXCHANGE_API}/pair`;
+  private readonly EXCHANGE_BASE_URL = `https://v6.exchangerate-api.com/v6/${config.EXCHANGE_API}/pair`;
 
   // Payment method to currency mapping
   private readonly PAYMENT_METHOD_MAP: Record<PaymentMethod, CurrencyType> = {
     razorpay: "inr",
-    polar: "usd",
   };
 
   // Default exchange rates (fallback)
@@ -55,7 +54,6 @@ export class CurrencyService {
    * Initialize default exchange rates
    */
   private async initializeDefaultRates(): Promise<void> {
-    const rate = fetch(`${this.EXCHANGE_BASE_URL}/INR`);
     this.exchangeRates.set("inr_to_usd", {
       from: "inr",
       to: "usd",
@@ -232,36 +230,18 @@ export class CurrencyService {
       };
     }
 
-    try {
-      // Try to get conversion with amount from API for accuracy
-      const convertedAmount = await this.fetchExchangeRateWithAmountFromAPI(
-        amount,
-        from,
-        to,
-      );
+    // High performance: get rate (cached or single API call) and compute locally
+    // instead of making a separate "convert with amount" API call.
+    const rate = await this.getExchangeRate(from, to);
+    const convertedAmount = amount * rate;
 
-      const rate = await this.getExchangeRate(from, to);
-
-      return {
-        originalAmount: amount,
-        convertedAmount: parseFloat(convertedAmount.toFixed(2)),
-        fromCurrency: from,
-        toCurrency: to,
-        exchangeRate: rate,
-      };
-    } catch (err) {
-      // Fallback: use simple rate multiplication
-      const rate = await this.getExchangeRate(from, to);
-      const convertedAmount = amount * rate;
-
-      return {
-        originalAmount: amount,
-        convertedAmount: parseFloat(convertedAmount.toFixed(2)),
-        fromCurrency: from,
-        toCurrency: to,
-        exchangeRate: rate,
-      };
-    }
+    return {
+      originalAmount: amount,
+      convertedAmount: parseFloat(convertedAmount.toFixed(2)),
+      fromCurrency: from,
+      toCurrency: to,
+      exchangeRate: rate,
+    };
   }
 
   /**
@@ -279,10 +259,8 @@ export class CurrencyService {
    * Get payment method for currency
    */
   getPaymentMethodByCurrency(currency: CurrencyType): PaymentMethod {
-    if (currency === "inr") {
+    if (currency === "inr" || currency === "usd") {
       return "razorpay";
-    } else if (currency === "usd") {
-      return "polar";
     }
     throw new Error(`No payment method for currency: ${currency}`);
   }
