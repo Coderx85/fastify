@@ -42,10 +42,7 @@ export const paymentStatusEnum = pgEnum("payment_status", [
   "failed",
 ]);
 
-export const paymentMethodEnum = pgEnum("payment_method", [
-  "polar",
-  "razorpay",
-]);
+export const paymentMethodEnum = pgEnum("payment_method", ["razorpay"]);
 
 export const currencyEnum = pgEnum("currency", ["usd", "inr"]);
 export const addressTypeEnum = pgEnum("address_type", ["shipping", "billing"]);
@@ -128,15 +125,17 @@ export const ordersTable = pgTable(
     totalAmount: integer("total_amount").notNull().default(0),
     totalAmountCurrency: currencyEnum("total_amount_currency").notNull(), // New column
     status: orderStatusEnum("status").notNull().default("processing"),
-    billingAddressId: integer("billing_address_id")
-      .references(() => addressesTable.id, { onDelete: "set null" })
-      .notNull(),
-    shippingAddressId: integer("shipping_address_id")
-      .references(() => addressesTable.id, { onDelete: "set null" })
-      .notNull(),
+    billingAddressId: integer("billing_address_id").references(
+      () => addressesTable.id,
+      { onDelete: "set null" },
+    ),
+    shippingAddressId: integer("shipping_address_id").references(
+      () => addressesTable.id,
+      { onDelete: "set null" },
+    ),
     paymentMethod: paymentMethodEnum("payment_method")
       .notNull()
-      .default("polar"),
+      .default("razorpay"),
     notes: text("notes"),
     ...timestamps,
   },

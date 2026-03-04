@@ -36,6 +36,13 @@
       "when": 1772274033284,
       "tag": "0004_nostalgic_the_liberteens",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1772594221184,
+      "tag": "0005_happy_otto_octavius",
+      "breakpoints": true
     }
   ]
 }
