@@ -169,11 +169,13 @@ export type DeleteOrderResponse = z.infer<typeof deleteOrderResponseSchema>;
 
 const currencyValues = z.enum(currencyEnum.enumValues);
 
-const addressInput = addressInsertSchema.omit({
+export const addressInput = addressInsertSchema.omit({
   id: true,
   createdAt: true,
   updatedAt: true,
   userId: true,
+  addressType: true,
+  isDefault: true,
 });
 
 const orderItemInputSchema = z.object({
@@ -184,9 +186,15 @@ const orderItemInputSchema = z.object({
 // POST - /api/order
 const createOrderInputBaseSchema = orderInsertSchema
   .pick({
+    totalAmount: true,
+    totalAmountCurrency: true,
     userId: true,
     paymentMethod: true,
     notes: true,
+    id: true,
+  })
+  .partial({
+    id: true,
   })
   .extend({
     billingAddress: addressInput,
@@ -202,8 +210,8 @@ const createOrderOutputBaseSchema = orderInsertSchema
     billingAddressId: true,
   })
   .extend({
-    shippingAddress: addressInput.omit({ addressType: true, isDefault: true }),
-    billingAddress: addressInput.omit({ addressType: true, isDefault: true }),
+    shippingAddress: addressInput,
+    billingAddress: addressInput,
     items: z.array(orderItemInputSchema),
     pricing: z.object({
       originalAmount: z.number().nonnegative(),

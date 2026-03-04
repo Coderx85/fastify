@@ -74,3 +74,16 @@ export const updateUserSchema = {
 };
 
 export type UpdateUserBody = z.infer<typeof updateUserSchema.body>;
+
+// DELETE - /api/users/:id
+
+export const deleteUserResponseSchema = {
+  params: z.object({
+    id: z.string().transform((val) => parseInt(val, 10)),
+  }),
+  200: successResponseSchema(
+    z.object({
+      message: z.string(),
+    }),
+  ),
+};

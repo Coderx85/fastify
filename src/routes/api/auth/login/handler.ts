@@ -6,6 +6,7 @@ import { sendError, sendSuccess } from "@/lib/response";
 import { generateAuthToken } from "@/lib/token";
 import { userService } from "@/modules/users/user.service";
 import { IUser } from "@/modules/users/user.definition";
+import type { TUser } from "@/db/schema";
 
 export const loginRouteHandler = {
   handler: async (
@@ -15,7 +16,7 @@ export const loginRouteHandler = {
     const { email, password } = request.body;
 
     try {
-      let user: IUser | null = null;
+      let user: TUser | null = null;
 
       user = await userService.findUserForAuth(email);
 

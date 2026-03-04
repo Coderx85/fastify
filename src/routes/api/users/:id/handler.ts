@@ -196,6 +196,35 @@ class UserController implements IUserController {
       );
     }
   }
+
+  async deleteUserHandler(
+    request: FastifyRequest<{ Params: { id: number } }>,
+    reply: FastifyReply,
+  ): Promise<void> {
+    try {
+      const { id } = request.params;
+
+      const user = await userService.deleteUser(id);
+
+      sendSuccess(null, "User deleted successfully", reply, 200);
+    } catch (error) {
+      // Extract error code from cause or directly from the error object
+      const code = getCauseCode(error) || (error as any)?.code;
+
+      if (code === "USER_NOT_FOUND" || code === "NOT_FOUND") {
+        return sendError("User not found", "USER_NOT_FOUND", reply, 404);
+      }
+
+      request.log.error(error);
+
+      return sendError(
+        "Failed to delete user",
+        "INTERNAL_SERVER_ERROR",
+        reply,
+        500,
+      );
+    }
+  }
 }
 
 export const userController = new UserController();

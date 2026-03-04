@@ -1,8 +1,12 @@
-import type { FastifyReply, FastifyInstance, FastifyRequest } from "fastify";
+import type { FastifyInstance } from "fastify";
 import { ZodTypeProvider } from "fastify-type-provider-zod";
 
 import {} from "@/modules/orders/order.service";
-import { getOrderByUserIdSchema, getUserSchema } from "@/schema/user.schema";
+import {
+  deleteUserResponseSchema,
+  getOrderByUserIdSchema,
+  getUserSchema,
+} from "@/schema/user.schema";
 import { userController } from "./handler";
 
 export default async function userRoute(fastify: FastifyInstance) {
@@ -13,8 +17,13 @@ export default async function userRoute(fastify: FastifyInstance) {
   });
 
   // PUT /api/users/:userId
-  fastify.withTypeProvider<ZodTypeProvider>().put("/:userId", {
-    schema: getUserSchema,
-    handler: userController.updateUserHandler,
+  // fastify.withTypeProvider<ZodTypeProvider>().put("/", {
+  //   schema: getUserSchema,
+  //   handler: userController.updateUserHandler,
+  // });
+
+  fastify.withTypeProvider<ZodTypeProvider>().delete("/:id", {
+    schema: deleteUserResponseSchema,
+    handler: userController.deleteUserHandler,
   });
 }

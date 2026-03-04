@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import { addressInsertSchema, payments, paymentStatusEnum } from "../db/schema";
+import {
+  addressInsertSchema,
+  paymentsTable as payments,
+  paymentStatusEnum,
+} from "@/db/schema";
 
 // predefined payment status values and initial status
 const paymentStatusValues = paymentStatusEnum.enumValues;
@@ -29,7 +33,7 @@ export const createRazorpayCheckoutSchema = z
     // Optional external customer id (your internal user id)
     externalCustomerId: z.string().optional(),
   })
-  .extend(addressInsertSchema);
+  .and(addressInsertSchema.partial());
 
 // For Polar, we allow currency and paymentMethod to be set to their defaults, but they can be overridden if needed
 
@@ -59,3 +63,71 @@ export const createPolarPaymentSchema = polarPaymentSchema
 ///////////////////////////////////////////////////////////////////
 // ADDRESS SCHEMA - can be used for both Polar and Razorpay orders
 ///////////////////////////////////////////////////////////////////
+
+import { successResponseSchema } from "@/types/api";
+import { currencyEnum, paymentMethodEnum } from "@/db/schema";
+import { addressInput } from "./order.schema";
+
+const orderItemInputSchema = z.object({
+  productId: z.number().int().positive(),
+  quantity: z.number().int().positive().default(1),
+});
+
+// ============ Payment Initiation Schema ============
+
+export const orderAddressInput = addressInput;
+
+export const paymentInitiateRequestSchema = z.object({
+  userId: z.number().int().positive(),
+  paymentMethod: z.enum(paymentMethodEnum.enumValues),
+  totalAmount: z.number().positive().optional(),
+  totalAmountCurrency: z.enum(currencyEnum.enumValues).optional(),
+  billingAddress: orderAddressInput,
+  shippingAddress: orderAddressInput,
+  products: z
+    .array(orderItemInputSchema)
+    .min(1, "At least one product is required"),
+  notes: z.string().optional(),
+});
+
+export const paymentIntentResultSchema = z.object({
+  provider: z.enum(["razorpay"]), // Only Razorpay now
+  providerOrderId: z.string(),
+  razorpayKeyId: z.string().optional(),
+  checkoutUrl: z.string().url().optional(),
+  raw: z.any().optional(),
+});
+
+export const initiatePaymentSchema = {
+  body: paymentInitiateRequestSchema,
+  response: {
+    200: successResponseSchema(paymentIntentResultSchema),
+  },
+};
+
+export type PaymentInitiateRequest = z.infer<
+  typeof paymentInitiateRequestSchema
+>;
+export type PaymentIntentResult = z.infer<typeof paymentIntentResultSchema>;
+
+// ============ Webhook Response Schemas ============
+
+export const razorpayWebhookSchema = z.object({
+  event: z.string(),
+  payload: z.record(z.string(), z.any()),
+  signature: z.string().optional(),
+});
+
+export const polarWebhookSchema = z.object({
+  type: z.string(),
+  data: z.record(z.string(), z.any()),
+});
+
+export const webhookResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+});
+
+export type RazorpayWebhook = z.infer<typeof razorpayWebhookSchema>;
+export type PolarWebhook = z.infer<typeof polarWebhookSchema>;
+export type WebhookResponse = z.infer<typeof webhookResponseSchema>;

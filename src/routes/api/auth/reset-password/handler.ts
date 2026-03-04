@@ -1,6 +1,6 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import { ResetPasswordBody } from "@/schema/auth.schema";
-import { users } from "@/db/schema";
+import { usersTable as users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { validateResetToken, deleteResetToken } from "@/lib/token";
 import { hashPassword } from "@/lib/hash";

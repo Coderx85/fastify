@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { db } from "@/db";
-import { payments } from "@/db/schema";
+import { paymentsTable as payments } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 const SuccessQuery = z.object({ orderId: z.string().or(z.number()) });

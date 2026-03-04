@@ -1,4 +1,4 @@
-import { payments, paymentStatusEnum } from "@/db/schema";
+import { paymentsTable as payments, paymentStatusEnum } from "@/db/schema";
 import { z } from "zod";
 
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";

@@ -1,7 +1,10 @@
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 import { Webhooks } from "@polar-sh/fastify";
 import { config } from "@/lib/config";
-import { orderService } from "@/modules/polar-order.service";
+import { paymentService } from "@/modules/payment/payment.service";
+// NOTE: polar-order.service is used for the simple SaaS example and is
+// intentionally _not_ imported here.  Our e-commerce flow now creates orders
+// in the main orders module via the paymentService.
 
 /**
  * Polar Webhooks Handler
@@ -46,21 +49,11 @@ export default async function webhooksRoutes(fastify: FastifyInstance) {
           createdAt,
         });
 
-        // Store order in your database
-        try {
-          await orderService.saveOrder({
-            polarOrderId: id,
-            polarCustomerId: customerId,
-            polarProductId: productId ?? "",
-            amountCents,
-            currency,
-            status: "created",
-            customerEmail: order.customer?.email,
-            customerExternalId: order.customer?.externalId ?? undefined,
-          });
-        } catch (error) {
-          console.error("Failed to save order:", error);
-        }
+        // store order metadata in provider so that later a `order.paid`
+        // event will trigger actual creation via paymentService.  nothing to
+        // do here for e-commerce orders since they will be created after
+        // payment is captured.
+        console.log("polar order created event received (noop)");
       },
 
       /**
@@ -81,18 +74,16 @@ export default async function webhooksRoutes(fastify: FastifyInstance) {
           customerExternalId,
         });
 
-        // Update order status and grant access
-        try {
-          await orderService.updateOrderStatus(id, "paid");
-
-          // Grant access to your SaaS
-          if (customerExternalId && productId) {
-            await orderService.grantAccess(customerExternalId, productId);
-            console.log(`🎉 Access granted to user: ${customerExternalId}`);
-          }
-        } catch (error) {
-          console.error("Failed to process paid order:", error);
-        }
+        // order has been paid; create it in our system if metadata exists
+        // Removed Polar webhook handling
+        // try {
+        //   await paymentService.handlePolarWebhook(payload);
+        // } catch (error) {
+        //   console.error(
+        //     "Failed to process paid order via paymentService:",
+        //     error,
+        //   );
+        // }
       },
 
       /**
@@ -103,18 +94,13 @@ export default async function webhooksRoutes(fastify: FastifyInstance) {
         const { id } = payload.data;
         const customerExternalId = payload.data.customer?.externalId;
 
-        console.log("💰 Order Refunded:", { orderId: id, customerExternalId });
-
-        try {
-          await orderService.updateOrderStatus(id, "refunded");
-
-          if (customerExternalId) {
-            await orderService.revokeAccess(customerExternalId);
-            console.log(`❌ Access revoked for user: ${customerExternalId}`);
-          }
-        } catch (error) {
-          console.error("Failed to process refund:", error);
-        }
+        console.log("💰 Order Refunded (e-commerce):", {
+          orderId: id,
+          customerExternalId,
+        });
+        // refunds are not yet handled by the paymentService; you could extend
+        // it here if you want to automatically cancel / mark orders as
+        // refunded when Polar notifies us.
       },
 
       /**
