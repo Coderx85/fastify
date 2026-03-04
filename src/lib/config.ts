@@ -4,6 +4,8 @@ export const config = {
   ENVIRONMENT:
     (process.env.ENVIRONMENT as "development" | "production" | "test") ||
     "development",
+  SERVER_URL:
+    process.env.SERVER_URL || `http://localhost:${process.env.PORT || 3000}`,
 
   // Polar.sh Configuration
   POLAR_ACCESS_TOKEN: process.env.POLAR_ACCESS_TOKEN || "",

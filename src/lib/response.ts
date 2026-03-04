@@ -12,7 +12,7 @@ export function sendSuccess<T>(
   data: T,
   message: string,
   reply: FastifyReply,
-  statusCode: number = 200 | 201,
+  statusCode: number = 200,
 ): void {
   const response: TResponse<T> = {
     ok: true,
@@ -34,7 +34,7 @@ export function sendError(
   error: string,
   message: string,
   reply: FastifyReply,
-  statusCode: number = 400 | 404 | 409 | 500,
+  statusCode: number = 400,
 ): void {
   const response: TResponse<null> = {
     ok: false,
