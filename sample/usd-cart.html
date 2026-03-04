@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>USD Cart - Microverse Store</title>
+    <style>
+      :root {
+        --glass: rgba(255, 255, 255, 0.05);
+        --glass-border: rgba(255, 255, 255, 0.1);
+        --accent: #3b82f6;
+        --accent-glow: rgba(59, 130, 246, 0.5);
+      }
+      * {
+        color: #fff;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: 'Inter', -apple-system, sans-serif;
+        padding: 40px 20px;
+        background-color: #0a0a0c;
+        background-image: radial-gradient(circle at 50% 0%, #1a1a2e 0%, #0a0a0c 100%);
+        min-height: 100vh;
+        margin: 0;
+      }
+      .container {
+        max-width: 1000px;
+        margin: 0 auto;
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 40px;
+      }
+      .header h1 {
+        font-size: 2.5em;
+        background: linear-gradient(to right, #fff, #3b82f6);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 10px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 350px;
+        gap: 30px;
+      }
+      @media (max-width: 768px) {
+        .grid { grid-template-columns: 1fr; }
+      }
+      .glass-card {
+        background: var(--glass);
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      }
+      .section-title {
+        font-size: 1.2em;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #3b82f6;
+      }
+      #products {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 20px;
+      }
+      .product-card {
+        background: rgba(255,255,255,0.03);
+        border: 1px solid var(--glass-border);
+        border-radius: 12px;
+        padding: 16px;
+        transition: transform 0.2s, background 0.2s;
+      }
+      .product-card:hover {
+        transform: translateY(-4px);
+        background: rgba(255,255,255,0.06);
+      }
+      .product-name { font-weight: 600; margin-bottom: 4px; display: block; }
+      .product-cat { font-size: 0.8em; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+      .product-desc { font-size: 0.9em; color: #bbb; margin: 10px 0; min-height: 40px; }
+      .product-price { font-size: 1.2em; font-weight: 700; color: #fff; margin-bottom: 15px; display: block;}
+      
+      button {
+        background: var(--accent);
+        color: white;
+        border: none;
+        padding: 12px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        width: 100%;
+        transition: all 0.2s;
+        box-shadow: 0 4px 12px var(--accent-glow);
+      }
+      button:hover {
+        background: #2563eb;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px var(--accent-glow);
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+      
+      .input-group { margin-bottom: 15px; }
+      label { display: block; font-size: 0.85em; color: #888; margin-bottom: 6px; }
+      input {
+        width: 100%;
+        padding: 10px;
+        background: rgba(0,0,0,0.2);
+        border: 1px solid var(--glass-border);
+        border-radius: 8px;
+        color: #fff;
+        outline: none;
+      }
+      input:focus { border-color: var(--accent); }
+
+      .cart-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--glass-border);
+      }
+      .cart-item:last-child { border-bottom: none; }
+      .cart-item-info { flex: 1; }
+      .cart-item-controls { display: flex; align-items: center; gap: 10px; }
+      .qty-btn { width: 30px; height: 30px; padding: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.1); box-shadow: none;}
+      
+      .total-row {
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 2px solid var(--glass-border);
+        display: flex;
+        justify-content: space-between;
+        font-size: 1.4em;
+        font-weight: 800;
+      }
+      .usd-symbol { color: #10b981; }
+      
+      #errorMsg { color: #ef4444; font-size: 0.9em; margin-top: 15px; background: rgba(239, 68, 68, 0.1); border-radius: 8px; padding: 10px; display: none;}
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Microverse USD Store</h1>
+        <p style="color: #888">Global pricing enabled &bull; Checkout in USD</p>
+      </div>
+
+      <div class="grid">
+        <div class="main-col">
+          <div class="glass-card" style="margin-bottom: 30px;">
+            <div class="section-title">📦 Featured Products</div>
+            <div id="products">Loading global catalog...</div>
+          </div>
+
+          <div class="glass-card">
+            <div class="section-title">📍 Delivery Details</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+              <div class="input-group">
+                <label>Shipping Address</label>
+                <input id="shippingAddr" value="123 Silicon Valley Blvd" />
+              </div>
+              <div class="input-group">
+                <label>City & State</label>
+                <input id="shippingCity" value="Palo Alto, CA" />
+              </div>
+              <div class="input-group">
+                <label>Postal Code</label>
+                <input id="shippingZip" value="94301" />
+              </div>
+              <div class="input-group">
+                <label>Country</label>
+                <input id="shippingCountry" value="USA" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sidebar">
+          <div class="glass-card" style="position: sticky; top: 20px;">
+            <div class="section-title">🛒 Your Cart (USD)</div>
+            <div id="cartItems">
+              <p style="color: #666; text-align: center; margin: 40px 0;">Your cart is empty</p>
+            </div>
+            <div id="cartSummary" style="display: none;">
+              <div class="total-row">
+                <span>Total</span>
+                <span><span class="usd-symbol">$</span><span id="totalAmount">0.00</span></span>
+              </div>
+              <div id="errorMsg"></div>
+              <button id="checkoutBtn" style="margin-top: 20px;">Complete Purchase</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Note: Razorpay supports USD for international accounts. 
+         Usually international payments use Stripe/Polar, but here we stay consistent with Razorpay -->
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script>
+      const API_BASE = "http://localhost:4000";
+      let productMap = {};
+      let cart = [];
+
+      function formatUSD(amount) {
+        return new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'USD'
+        }).format(amount);
+      }
+
+      async function loadProducts() {
+        try {
+          const res = await fetch(`${API_BASE}/api/products`);
+          const { data } = await res.json();
+          const products = data?.products || [];
+          const container = document.getElementById("products");
+          container.innerHTML = "";
+          
+          products.forEach(p => {
+            productMap[p.id] = p;
+            const card = document.createElement("div");
+            card.className = "product-card";
+            card.innerHTML = `
+              <span class="product-cat">${p.category}</span>
+              <span class="product-name">${p.name}</span>
+              <p class="product-desc">${p.description || 'No description'}</p>
+              <span class="product-price">${formatUSD(p.rates.usd)}</span>
+              <button onclick="addToCart(${p.id})">Add to Cart</button>
+            `;
+            container.appendChild(card);
+          });
+        } catch (err) {
+          document.getElementById("products").innerHTML = "Error loading products.";
+        }
+      }
+
+      function addToCart(id) {
+        const existing = cart.find(i => i.id === id);
+        if (existing) existing.qty++;
+        else cart.push({ id, qty: 1 });
+        renderCart();
+      }
+
+      function renderCart() {
+        const container = document.getElementById("cartItems");
+        const summary = document.getElementById("cartSummary");
+        if (cart.length === 0) {
+          container.innerHTML = '<p style="color: #666; text-align: center; margin: 40px 0;">Your cart is empty</p>';
+          summary.style.display = "none";
+          return;
+        }
+
+        summary.style.display = "block";
+        container.innerHTML = "";
+        let total = 0;
+
+        cart.forEach((item, index) => {
+          const p = productMap[item.id];
+          const lineTotal = p.rates.usd * item.qty;
+          total += lineTotal;
+
+          const div = document.createElement("div");
+          div.className = "cart-item";
+          div.innerHTML = `
+            <div class="cart-item-info">
+              <div style="font-weight: 600;">${p.name}</div>
+              <div style="font-size: 0.8em; color: #888;">${formatUSD(p.rates.usd)} each</div>
+            </div>
+            <div class="cart-item-controls">
+              <button class="qty-btn" onclick="updateQty(${index}, -1)">&minus;</button>
+              <span>${item.qty}</span>
+              <button class="qty-btn" onclick="updateQty(${index}, 1)">&plus;</button>
+            </div>
+          `;
+          container.appendChild(div);
+        });
+
+        document.getElementById("totalAmount").textContent = total.toFixed(2);
+      }
+
+      function updateQty(index, delta) {
+        cart[index].qty += delta;
+        if (cart[index].qty <= 0) cart.splice(index, 1);
+        renderCart();
+      }
+
+      async function handleCheckout() {
+        const btn = document.getElementById("checkoutBtn");
+        const error = document.getElementById("errorMsg");
+        btn.disabled = true;
+        btn.textContent = "Initiating...";
+        error.style.display = "none";
+
+        try {
+          const payload = {
+            userId: 1,
+            paymentMethod: "razorpay", // Razorpay handles USD conversion if enabled
+            totalAmountCurrency: "usd",
+            products: cart.map(i => ({ productId: i.id, quantity: i.qty })),
+            shippingAddress: {
+              streetAddress1: document.getElementById("shippingAddr").value,
+              city: document.getElementById("shippingCity").value.split(',')[0].trim(),
+              state: document.getElementById("shippingCity").value.split(',')[1]?.trim() || "CA",
+              postalCode: document.getElementById("shippingZip").value,
+              country: document.getElementById("shippingCountry").value
+            },
+            billingAddress: {
+               // using same for demo
+              streetAddress1: document.getElementById("shippingAddr").value,
+              city: document.getElementById("shippingCity").value.split(',')[0].trim(),
+              state: document.getElementById("shippingCity").value.split(',')[1]?.trim() || "CA",
+              postalCode: document.getElementById("shippingZip").value,
+              country: document.getElementById("shippingCountry").value
+            }
+          };
+
+          const res = await fetch(`${API_BASE}/api/payment/initiate`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+
+          const result = await res.json();
+          if (!res.ok) throw new Error(result.message || "Failed to initiate");
+
+          const { providerOrderId, razorpayKeyId } = result.data;
+
+          const options = {
+            key: razorpayKeyId,
+            order_id: providerOrderId,
+            handler: function (response) {
+              alert("Payment Successful! Order processed in USD.");
+              cart = [];
+              renderCart();
+            },
+            modal: { ondismiss: () => { btn.disabled = false; btn.textContent = "Complete Purchase"; } },
+            prefill: { email: "global@example.com" },
+            theme: { color: "#3b82f6" }
+          };
+
+          new Razorpay(options).open();
+
+        } catch (err) {
+          error.textContent = err.message;
+          error.style.display = "block";
+          btn.disabled = false;
+          btn.textContent = "Complete Purchase";
+        }
+      }
+
+      document.getElementById("checkoutBtn").onclick = handleCheckout;
+      loadProducts();
+    </script>
+  </body>
+</html>

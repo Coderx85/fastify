@@ -50,8 +50,10 @@ export const dbProductRow = {
  * Must be an array of { currencyType, priceAmount } for `for...of` in the service.
  */
 export const priceRowsSample = [
-  { currencyType: "usd" as const, priceAmount: 19.99 },
-  { currencyType: "inr" as const, priceAmount: 1659 },
+  { productId: 1, currencyType: "usd" as const, priceAmount: 19.99 },
+  { productId: 1, currencyType: "inr" as const, priceAmount: 1659 },
+  { productId: 2, currencyType: "usd" as const, priceAmount: 19.99 },
+  { productId: 2, currencyType: "inr" as const, priceAmount: 1659 },
 ];
 
 /**

@@ -6,12 +6,12 @@
     <style>
       * {
         color: #fff;
+        box-sizing: border-box;
       }
       body {
         font-family: Arial, sans-serif;
         padding: 20px;
         background-color: black;
-        columns: #fff;
       }
       #products,
       #cart {
@@ -23,7 +23,6 @@
         border: 1px solid #ccc;
         padding: 10px;
         width: 150px;
-        background-color: #ccc;
         background: #000;
       }
       button {
@@ -35,6 +34,10 @@
         padding: 5px;
         cursor: pointer;
       }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
       input {
         margin-bottom: 5px;
         padding: 5px;
@@ -42,6 +45,28 @@
         background-color: #222;
         border: 1px solid #555;
         color: #fff;
+      }
+      .cart-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+      }
+      .cart-item button {
+        width: auto;
+        padding: 2px 8px;
+        margin: 0;
+      }
+      .cart-total {
+        margin-top: 10px;
+        font-size: 1.2em;
+        font-weight: bold;
+        color: #0ff;
+      }
+      .error-msg {
+        color: #f66;
+        margin-top: 10px;
+        white-space: pre-wrap;
       }
     </style>
   </head>
@@ -98,14 +123,19 @@
 
     <h2>Your Cart</h2>
     <div id="cart"></div>
+    <div id="cartTotal" class="cart-total"></div>
+    <div id="errorMsg" class="error-msg"></div>
     <button id="checkoutBtn">Checkout</button>
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script>
       const SERVER_API_URL = "http://localhost:4000"; // change if server runs elsewhere
       const productsEl = document.getElementById("products");
       const cartEl = document.getElementById("cart");
+      const cartTotalEl = document.getElementById("cartTotal");
+      const errorMsgEl = document.getElementById("errorMsg");
       const checkoutBtn = document.getElementById("checkoutBtn");
       let cart = [];
+      let productMap = {}; // id -> product object (with prices)
 
       function formatPrice(amount, currency = "INR") {
         if (currency.toLowerCase() === "inr") {
@@ -122,6 +152,14 @@
         });
       }
 
+      function clearError() {
+        errorMsgEl.textContent = "";
+      }
+
+      function showError(msg) {
+        errorMsgEl.textContent = msg;
+      }
+
       async function loadProducts() {
         try {
           const res = await fetch(`${SERVER_API_URL}/api/products`);
@@ -129,6 +167,7 @@
           const products = json?.data?.products || [];
           productsEl.innerHTML = "";
           products.forEach((p) => {
+            productMap[p.id] = p; 
             const div = document.createElement("div");
             div.className = "card";
             div.innerHTML = `
@@ -150,21 +189,44 @@
       }
 
       function addToCart(product) {
+        clearError();
         const existing = cart.find((i) => i.productId === product.id);
         if (existing) existing.quantity++;
         else
-          cart.push({ productId: product.id, quantity: 1, name: product.name });
+          cart.push({
+            productId: product.id,
+            quantity: 1,
+            name: product.name,
+            priceInr: product.rates?.inr || 0,
+          });
         renderCart();
       }
 
       function renderCart() {
         cartEl.innerHTML = "";
+        let total = 0;
         cart.forEach((i, idx) => {
+          const itemTotal = i.priceInr * i.quantity;
+          total += itemTotal;
           const div = document.createElement("div");
+          div.className = "cart-item";
           div.innerHTML = `
-            ${i.name} × ${i.quantity}
-            <button data-index="${idx}" class="remove-btn">x</button>
+            <span>${i.name} &times; ${i.quantity} = ${formatPrice(itemTotal, "inr")}</span>
+            <button data-index="${idx}" class="qty-minus">&minus;</button>
+            <button data-index="${idx}" class="qty-plus">+</button>
+            <button data-index="${idx}" class="remove-btn">&times;</button>
           `;
+          div.querySelector(".qty-minus").addEventListener("click", (e) => {
+            const index = Number(e.target.getAttribute("data-index"));
+            if (cart[index].quantity > 1) cart[index].quantity--;
+            else cart.splice(index, 1);
+            renderCart();
+          });
+          div.querySelector(".qty-plus").addEventListener("click", (e) => {
+            const index = Number(e.target.getAttribute("data-index"));
+            cart[index].quantity++;
+            renderCart();
+          });
           div.querySelector(".remove-btn").addEventListener("click", (e) => {
             const index = Number(e.target.getAttribute("data-index"));
             cart.splice(index, 1);
@@ -172,9 +234,12 @@
           });
           cartEl.appendChild(div);
         });
+        cartTotalEl.textContent =
+          cart.length > 0 ? `Total: ${formatPrice(total, "inr")}` : "";
       }
 
       async function checkout() {
+        clearError();
         if (cart.length === 0) {
           alert("Cart is empty");
           return;
@@ -199,59 +264,75 @@
           postalCode: document.getElementById("shippingPostalCode").value,
           country: document.getElementById("shippingCountry").value,
         };
+
+        checkoutBtn.disabled = true;
+        checkoutBtn.textContent = "Processing\u2026";
+
         try {
-          const orderResp = await fetch(`${SERVER_API_URL}/api/orders`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              products: cart.map((i) => ({
-                productId: i.productId,
-                quantity: i.quantity,
-              })),
-              billingAddress: billing,
-              shippingAddress: shipping,
-            }),
-          });
-          const orderBody = await orderResp.json();
-          if (![200, 201].includes(orderResp.status)) {
-            console.error("order creation failed", orderBody);
-            alert("Order creation failed");
-            return;
-          }
-          const orderId = orderBody?.data?.order?.id;
-          if (!orderId) {
-            alert("Invalid order response");
-            return;
-          }
-          const intentResp = await fetch(
-            `${SERVER_API_URL}/api/payment/intent`,
+          // Initiate payment with Razorpay
+          const paymentResp = await fetch(
+            `${SERVER_API_URL}/api/payment/initiate`,
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                orderId,
-                provider: "razorpay",
-                customerName: "Demo User",
-                customerEmail: "demo@example.com",
-                successUrl: `${SERVER_API_URL}/checkout/success`,
+                userId: 1, // In production, use actual user ID from auth
+                paymentMethod: "razorpay",
+                products: cart.map((i) => ({
+                  productId: i.productId,
+                  quantity: i.quantity,
+                })),
+                billingAddress: billing,
+                shippingAddress: shipping,
               }),
             },
           );
-          const intent = await intentResp.json();
-          if (![200, 201].includes(intentResp.status)) {
-            console.error("intent error", intent);
-            alert("Payment intent failed");
+          const paymentBody = await paymentResp.json();
+          if (![200, 201].includes(paymentResp.status)) {
+            console.error("payment initiation failed", paymentBody);
+            const detail =
+              paymentBody?.message ||
+              paymentBody?.error?.message ||
+              JSON.stringify(paymentBody, null, 2);
+            showError(`Payment initiation failed:\n${detail}`);
             return;
           }
-          const { order, keyId } = intent;
-          if (!order || !keyId) {
-            alert("Missing payment data");
+          const { providerOrderId, razorpayKeyId } = paymentBody?.data || {};
+          if (!providerOrderId) {
+            showError(
+              "Invalid payment response \u2014 no providerOrderId received.",
+            );
             return;
           }
-          new Razorpay({ key: keyId, order_id: order.id }).open();
+          // Open Razorpay checkout
+          const options = {
+            key: razorpayKeyId || "rzp_test_YOUR_KEY_ID", 
+            order_id: providerOrderId,
+            handler: function (response) {
+              alert(
+                "Payment successful! Payment ID: " +
+                  response.razorpay_payment_id,
+              );
+              cart = [];
+              renderCart();
+            },
+            modal: {
+              ondismiss: function () {
+                showError("Payment cancelled by user.");
+              },
+            },
+            prefill: {
+              email: "customer@example.com",
+              contact: "9999999999",
+            },
+          };
+          new Razorpay(options).open();
         } catch (err) {
           console.error("checkout error", err);
-          alert("Checkout failed");
+          showError(`Checkout failed: ${err.message || err}`);
+        } finally {
+          checkoutBtn.disabled = false;
+          checkoutBtn.textContent = "Checkout";
         }
       }
 

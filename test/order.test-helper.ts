@@ -1,7 +1,6 @@
 import {
   IOrderCreateInput,
   IAddressInput,
-  TPaymentMethod,
   TCurrency,
 } from "@/modules/orders/order.definition";
 
@@ -31,8 +30,8 @@ export const mockBillingAddress: IAddressInput = {
 };
 
 export const mockInvalidShippingAddress: IAddressInput = {
-  streetAddress2: "Suite 100", // Missing required fields
   userId: 1,
+  streetAddress2: "Suite 100", // Missing required fields
   addressType: "shipping",
   isDefault: true,
   streetAddress1: "", // Invalid: empty street
@@ -43,7 +42,6 @@ export const mockInvalidShippingAddress: IAddressInput = {
 };
 
 export const mockIncompleteAddress: Partial<IAddressInput> = {
-  userId: 1,
   addressType: "shipping",
   streetAddress1: "123 Main Street",
   // Missing: city, state, postalCode, country
@@ -51,8 +49,10 @@ export const mockIncompleteAddress: Partial<IAddressInput> = {
 
 // ========== Mock Order Creation Data ==========
 export const mockOrderWithValidProducts: IOrderCreateInput = {
+  totalAmountCurrency: "inr",
+  totalAmount: 10000,
   userId: 1,
-  paymentMethod: "polar",
+  paymentMethod: "razorpay",
   shippingAddress: mockShippingAddress,
   billingAddress: mockBillingAddress,
   products: [
@@ -63,6 +63,8 @@ export const mockOrderWithValidProducts: IOrderCreateInput = {
 };
 
 export const mockOrderWithSingleProduct: IOrderCreateInput = {
+  totalAmountCurrency: "inr",
+  totalAmount: 5000,
   userId: 1,
   paymentMethod: "razorpay",
   billingAddress: mockBillingAddress,
@@ -72,7 +74,9 @@ export const mockOrderWithSingleProduct: IOrderCreateInput = {
 
 export const mockOrderWithManyProducts: IOrderCreateInput = {
   userId: 1,
-  paymentMethod: "polar",
+  paymentMethod: "razorpay",
+  totalAmountCurrency: "inr",
+  totalAmount: 50000,
   billingAddress: mockBillingAddress,
   shippingAddress: mockShippingAddress,
   products: [
@@ -85,61 +89,65 @@ export const mockOrderWithManyProducts: IOrderCreateInput = {
 };
 
 export const mockOrderWithLargeQuantity: IOrderCreateInput = {
+  totalAmountCurrency: "inr",
+  totalAmount: 500000,
   userId: 1,
-  paymentMethod: "polar",
+  paymentMethod: "razorpay",
   shippingAddress: mockShippingAddress,
   billingAddress: mockBillingAddress,
   products: [{ productId: 1, quantity: 999 }],
 };
 
 export const mockOrderWithInvalidProduct: IOrderCreateInput = {
+  totalAmountCurrency: "inr",
+  totalAmount: 5000,
   userId: 1,
+  paymentMethod: "razorpay",
   billingAddress: mockBillingAddress,
-  paymentMethod: "polar",
   shippingAddress: mockShippingAddress,
   products: [{ productId: 99999, quantity: 1 }],
 };
 
-export const mockOrderWithInvalidPaymentMethod: Partial<IOrderCreateInput> = {
+export const mockOrderWithSingleQuantity: IOrderCreateInput = {
+  totalAmountCurrency: "inr",
+  totalAmount: 5000,
   userId: 1,
+  paymentMethod: "razorpay",
   billingAddress: mockBillingAddress,
-  paymentMethod: "invalid_method" as TPaymentMethod,
   shippingAddress: mockShippingAddress,
   products: [{ productId: 1, quantity: 1 }],
 };
 
 export const mockOrderWithoutShippingAddress: Partial<IOrderCreateInput> = {
-  userId: 1,
-  paymentMethod: "polar",
   shippingAddress: undefined,
   products: [{ productId: 1, quantity: 1 }],
 };
 
 export const mockOrderWithoutProducts: IOrderCreateInput = {
   userId: 1,
-  paymentMethod: "polar",
+  paymentMethod: "razorpay",
+  totalAmountCurrency: "inr",
+  totalAmount: 0,
   shippingAddress: mockShippingAddress,
   billingAddress: mockBillingAddress,
   products: [],
 };
 
 export const mockOrderWithNegativeQuantity: Partial<IOrderCreateInput> = {
-  userId: 1,
-  paymentMethod: "polar",
   shippingAddress: mockShippingAddress,
   products: [{ productId: 1, quantity: -5 }],
 };
 
 export const mockOrderWithZeroQuantity: Partial<IOrderCreateInput> = {
-  userId: 1,
-  paymentMethod: "polar",
   shippingAddress: mockShippingAddress,
   products: [{ productId: 1, quantity: 0 }],
 };
 
 export const mockOrderWithLongNotes: IOrderCreateInput = {
   userId: 1,
-  paymentMethod: "polar",
+  paymentMethod: "razorpay",
+  totalAmountCurrency: "inr",
+  totalAmount: 5000,
   billingAddress: mockBillingAddress,
   shippingAddress: mockShippingAddress,
   products: [{ productId: 1, quantity: 1 }],
@@ -147,8 +155,10 @@ export const mockOrderWithLongNotes: IOrderCreateInput = {
 };
 
 export const mockOrderWithSpecialCharactersInNotes: IOrderCreateInput = {
+  totalAmountCurrency: "inr",
+  totalAmount: 5000,
   userId: 1,
-  paymentMethod: "polar",
+  paymentMethod: "razorpay",
   billingAddress: mockBillingAddress,
   shippingAddress: mockShippingAddress,
   products: [{ productId: 1, quantity: 1 }],
@@ -157,6 +167,8 @@ export const mockOrderWithSpecialCharactersInNotes: IOrderCreateInput = {
 };
 
 export const mockOrderRazorpay: IOrderCreateInput = {
+  totalAmountCurrency: "inr",
+  totalAmount: 5000,
   userId: 2,
   paymentMethod: "razorpay",
   billingAddress: mockBillingAddress,
@@ -166,12 +178,14 @@ export const mockOrderRazorpay: IOrderCreateInput = {
 };
 
 export const mockOrderPolar: IOrderCreateInput = {
+  totalAmountCurrency: "inr",
+  totalAmount: 5000,
   userId: 3,
-  paymentMethod: "polar",
+  paymentMethod: "razorpay",
   billingAddress: mockBillingAddress,
   shippingAddress: mockShippingAddress,
   products: [{ productId: 2, quantity: 1 }],
-  notes: "Polar order",
+  notes: "Razorpay order (formerly Polar)",
 };
 
 // ========== Helper Functions ==========
@@ -195,7 +209,7 @@ export function createAddressPayload(
 
 export const PAYMENT_CURRENCY_MAP = {
   razorpay: "inr" as TCurrency,
-  polar: "usd" as TCurrency,
+  // polar: "usd" as TCurrency, // REMOVED: Using Razorpay only
 };
 
 export const EXCHANGE_RATES = {
@@ -217,9 +231,7 @@ export const mockProductResponse = {
 
 export const mockOrderResponse = {
   id: 1,
-  userId: 1,
   status: "processing",
-  paymentMethod: "polar",
   totalAmount: 10000,
   totalAmountCurrency: "inr",
   shippingAddressId: 1,
@@ -240,7 +252,6 @@ export const mockOrderItemResponse = {
 
 export const mockAddressResponse = {
   id: 1,
-  userId: 1,
   addressType: "shipping",
   isDefault: true,
   streetAddress1: "123 Main Street",
@@ -257,7 +268,6 @@ export const mockAddressResponse = {
 export function isValidOrderPayload(payload: any): boolean {
   return (
     payload.userId &&
-    payload.paymentMethod &&
     payload.shippingAddress &&
     Array.isArray(payload.products) &&
     payload.products.length > 0

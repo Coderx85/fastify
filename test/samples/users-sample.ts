@@ -1,6 +1,6 @@
-import { IUser } from "@/modules/users/user.definition";
+import { TUser } from "@/db/schema";
 
-export const userSample: IUser = {
+export const userSample: TUser = {
   id: 1,
   email: "test@example.com",
   name: "Test User",
