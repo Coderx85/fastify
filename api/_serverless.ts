@@ -10,22 +10,28 @@ import type { IncomingMessage, ServerResponse } from "http";
 // Import routes manually (esbuild resolves @/* aliases during bundling)
 import rootRoute from "@/routes/index";
 import healthRoute from "@/routes/health/index";
+
+// API routes
 import paymentRoute from "@/routes/api/payment/index";
-// import polarRoute from "bin/payment/polar/index";
 import productsRoute from "@/routes/api/products/index";
-import orderRoute from "@/routes/api/orders/index";
+import ordersRoute from "@/routes/api/orders/index";
+import usersRoute from "@/routes/api/users/index";
 
 // Auth routes
 import loginRoute from "@/routes/api/auth/login/index";
 import registerRoute from "@/routes/api/auth/register/index";
 import forgotPasswordRoute from "@/routes/api/auth/forgot-password/index";
 import resetPasswordRoute from "@/routes/api/auth/reset-password/index";
-import ordersRoutes from "@/routes/api/orders";
-import usersRoute from "@/routes/api/users";
-import { default as RazorpayCheckoutRoutes } from "@/routes/checkout";
-import { default as PolarcheckoutRoutes } from "@/routes/api/checkout";
-// import booksRoute from "@/routes/api/books/index";
-import { default as razorpayWebhook } from "@/routes/api/webhooks";
+
+// Admin routes
+import adminUsersRoute from "@/routes/api/admin/users/index";
+
+// Checkout routes
+import checkoutRoute from "@/routes/checkout/index";
+import apiCheckoutRoute from "@/routes/api/checkout/index";
+
+// Webhook routes
+import webhooksRoute from "@/routes/api/webhooks/index";
 
 // Instantiate Fastify with serverless config
 const app = Fastify({
@@ -46,29 +52,27 @@ app.register(cors, {
 app.register(rootRoute);
 app.register(healthRoute, { prefix: "/health" });
 
-// Payment routes
+// API routes
 app.register(paymentRoute, { prefix: "/api/payment" });
-// app.register(polarRoute, { prefix: "/api/payment/polar" });
-app.register(RazorpayCheckoutRoutes, { prefix: "/checkout" });
-app.register(PolarcheckoutRoutes, { prefix: "/api/checkout" });
-
-// Product, User and book routes
 app.register(productsRoute, { prefix: "/api/products" });
-// app.register(booksRoute, { prefix: "/api/books" });
+app.register(ordersRoute, { prefix: "/api/orders" });
 app.register(usersRoute, { prefix: "/api/users" });
-
-// Webhook routes
-app.register(razorpayWebhook, { prefix: "/api/webhooks" });
-
-// Order routes
-app.register(orderRoute, { prefix: "/api/order" });
-app.register(ordersRoutes, { prefix: "/api/orders" });
 
 // Auth routes
 app.register(loginRoute, { prefix: "/api/auth/login" });
 app.register(registerRoute, { prefix: "/api/auth/register" });
 app.register(forgotPasswordRoute, { prefix: "/api/auth/forgot-password" });
 app.register(resetPasswordRoute, { prefix: "/api/auth/reset-password" });
+
+// Admin routes
+app.register(adminUsersRoute, { prefix: "/api/admin/users" });
+
+// Checkout routes
+app.register(checkoutRoute, { prefix: "/checkout" });
+app.register(apiCheckoutRoute, { prefix: "/api/checkout" });
+
+// Webhook routes
+app.register(webhooksRoute, { prefix: "/api/webhooks" });
 
 export default async (req: IncomingMessage, res: ServerResponse) => {
   await app.ready();

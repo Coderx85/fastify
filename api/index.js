@@ -37517,88 +37517,16 @@ var config2 = {
 };
 
 // src/db/index.ts
+import { neon, Pool } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-http";
+import { drizzle as drizzleWs } from "drizzle-orm/neon-serverless";
 if (!config2.DATABASE_URL) {
   console.error("DATABASE_URL is not configured!");
 }
-var dbInstance = null;
-var dbPoolInstance = null;
-async function initDb() {
-  if (dbInstance) return dbInstance;
-  const { neon } = await import("@neondatabase/serverless");
-  const { drizzle } = await import("drizzle-orm/neon-http");
-  const sql2 = neon(config2.DATABASE_URL);
-  dbInstance = drizzle(sql2, { schema: schema_exports });
-  return dbInstance;
-}
-async function initDbPool() {
-  if (dbPoolInstance) return dbPoolInstance;
-  const { Pool } = await import("@neondatabase/serverless");
-  const { drizzle: drizzleWs } = await import("drizzle-orm/neon-serverless");
-  const pool = new Pool({ connectionString: config2.DATABASE_URL });
-  dbPoolInstance = drizzleWs(pool, { schema: schema_exports });
-  return dbPoolInstance;
-}
-var db = {
-  // Proxy pattern - methods will be called through async functions
-  async query(...args) {
-    const instance = await initDb();
-    return instance.query(...args);
-  },
-  async select(...args) {
-    const instance = await initDb();
-    return instance.select(...args);
-  },
-  async insert(...args) {
-    const instance = await initDb();
-    return instance.insert(...args);
-  },
-  async update(...args) {
-    const instance = await initDb();
-    return instance.update(...args);
-  },
-  async delete(...args) {
-    const instance = await initDb();
-    return instance.delete(...args);
-  },
-  async batch(...args) {
-    const instance = await initDb();
-    return instance.batch(...args);
-  },
-  async transaction(...args) {
-    const instance = await initDb();
-    return instance.transaction(...args);
-  }
-};
-var dbPool = {
-  async query(...args) {
-    const instance = await initDbPool();
-    return instance.query(...args);
-  },
-  async select(...args) {
-    const instance = await initDbPool();
-    return instance.select(...args);
-  },
-  async insert(...args) {
-    const instance = await initDbPool();
-    return instance.insert(...args);
-  },
-  async update(...args) {
-    const instance = await initDbPool();
-    return instance.update(...args);
-  },
-  async delete(...args) {
-    const instance = await initDbPool();
-    return instance.delete(...args);
-  },
-  async batch(...args) {
-    const instance = await initDbPool();
-    return instance.batch(...args);
-  },
-  async transaction(...args) {
-    const instance = await initDbPool();
-    return instance.transaction(...args);
-  }
-};
+var sql = neon(config2.DATABASE_URL);
+var db = drizzle(sql, { schema: schema_exports });
+var pool = new Pool({ connectionString: config2.DATABASE_URL });
+var dbPool = drizzleWs(pool, { schema: schema_exports });
 
 // src/modules/payment/razorpay.service.ts
 import { eq as eq4 } from "drizzle-orm";
@@ -37663,7 +37591,7 @@ function generateUUID() {
 }
 
 // src/modules/users/user.service.ts
-import { eq, sql } from "drizzle-orm";
+import { eq, sql as sql2 } from "drizzle-orm";
 var DuplicateUserError = class _DuplicateUserError extends Error {
   code = "23505";
   constructor(email3, contact) {
@@ -37693,9 +37621,9 @@ var selectedColumns = {
   createdAt: usersTable.createdAt,
   updatedAt: usersTable.updatedAt
 };
-var getUserByIdStatement = db.select(selectedColumns).from(usersTable).where(eq(usersTable.id, sql.placeholder("id"))).prepare("get_user_by_id");
-var getUserByEmailStatement = db.select(selectedColumns).from(usersTable).where(eq(usersTable.email, sql.placeholder("email"))).prepare("get_user_by_email");
-var getUserForAuthStatement = db.select().from(usersTable).where(eq(usersTable.email, sql.placeholder("email"))).prepare("get_user_for_auth");
+var getUserByIdStatement = db.select(selectedColumns).from(usersTable).where(eq(usersTable.id, sql2.placeholder("id"))).prepare("get_user_by_id");
+var getUserByEmailStatement = db.select(selectedColumns).from(usersTable).where(eq(usersTable.email, sql2.placeholder("email"))).prepare("get_user_by_email");
+var getUserForAuthStatement = db.select().from(usersTable).where(eq(usersTable.email, sql2.placeholder("email"))).prepare("get_user_for_auth");
 var UserService = class {
   async getUserById(id) {
     try {
