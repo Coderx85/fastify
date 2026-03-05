@@ -109,7 +109,7 @@ export class ProductService implements IProductService {
 
   async createProduct(data: IProductInput): Promise<IProduct> {
     try {
-      return await dbPool.transaction(async (tx) => {
+      return await dbPool.transaction(async (tx: any) => {
         // Insert the base product
         const [createdProduct] = await tx
           .insert(product)
@@ -161,7 +161,7 @@ export class ProductService implements IProductService {
       if (products.length === 0) return [];
 
       // Batch fetch ALL prices in a single query instead of N+1
-      const productIds = products.map((p) => p.id);
+      const productIds = products.map((p: TProduct) => p.id);
       const allPriceRecords = await db
         .select()
         .from(productsPriceTables)
@@ -173,11 +173,12 @@ export class ProductService implements IProductService {
         if (!pricesByProduct.has(price.productId)) {
           pricesByProduct.set(price.productId, { inr: 0, usd: 0 });
         }
-        pricesByProduct.get(price.productId)![price.currencyType] =
-          price.priceAmount;
+        pricesByProduct.get(price.productId)![
+          price.currencyType as currencyType
+        ] = price.priceAmount;
       }
 
-      return products.map((productRecord) => ({
+      return products.map((productRecord: TProduct) => ({
         ...productRecord,
         rates: pricesByProduct.get(productRecord.id) ?? { inr: 0, usd: 0 },
       }));
@@ -191,7 +192,7 @@ export class ProductService implements IProductService {
   async getProductById(id: number): Promise<IProduct | null> {
     let baseProduct: IProduct | null = null;
     try {
-      await dbPool.transaction(async (tx) => {
+      await dbPool.transaction(async (tx: any) => {
         const [productRecord] = await tx
           .select()
           .from(product)
@@ -215,7 +216,7 @@ export class ProductService implements IProductService {
         };
 
         for (const price of priceRecords) {
-          rates[price.currencyType] = price.priceAmount;
+          rates[price.currencyType as currencyType] = price.priceAmount;
         }
 
         baseProduct = {
@@ -288,7 +289,7 @@ export class ProductService implements IProductService {
       };
 
       for (const price of priceRecords) {
-        rates[price.currencyType] = price.priceAmount;
+        rates[price.currencyType as currencyType] = price.priceAmount;
       }
 
       return {

@@ -217,14 +217,23 @@ export class OrderService implements IOrderService {
         ...(order as TOrder),
         shippingAddress: shippingAddr as IAddressOutput,
         billingAddress: billingAddr as IAddressOutput,
-        items: orderItems.map((item) => ({
-          id: item.id,
-          orderId: item.orderId,
-          productId: item.productId,
-          quantity: item.quantity,
-          priceAtOrder: item.priceAtOrder / 100, // Convert back to normal units
-          createdAt: item.createdAt,
-        })),
+        items: orderItems.map(
+          (item: {
+            id: number;
+            orderId: number;
+            productId: number;
+            quantity: number;
+            priceAtOrder: number;
+            createdAt: Date;
+          }) => ({
+            id: item.id,
+            orderId: item.orderId,
+            productId: item.productId,
+            quantity: item.quantity,
+            priceAtOrder: item.priceAtOrder / 100, // Convert back to normal units
+            createdAt: item.createdAt,
+          }),
+        ),
         pricing,
       });
     }
@@ -253,7 +262,7 @@ export class OrderService implements IOrderService {
     if (products.length === 0) return 0;
 
     const productIds = products.map((item) => item.productId);
-    
+
     // Batch fetch all requested prices
     const priceRecords = await db
       .select()
@@ -273,12 +282,15 @@ export class OrderService implements IOrderService {
     let total = 0;
     for (const item of products) {
       const price = priceMap.get(item.productId);
-      
+
       if (price !== undefined) {
         total += price * item.quantity;
       } else {
         // Fallback for individual products not in cache
-        const fallbackPrice = await this.getProductPrice(item.productId, currency);
+        const fallbackPrice = await this.getProductPrice(
+          item.productId,
+          currency,
+        );
         total += fallbackPrice * item.quantity;
       }
     }
@@ -337,7 +349,7 @@ export class OrderService implements IOrderService {
     // Validate input
     this.validateOrderInput(data);
 
-    return await dbPool.transaction(async (tx) => {
+    return await dbPool.transaction(async (tx: any) => {
       // Get unique product IDs
       const productIds = [...new Set(data.products.map((p) => p.productId))];
 

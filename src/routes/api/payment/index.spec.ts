@@ -2,7 +2,6 @@ import { describe, it, beforeEach, vi, afterEach, assert } from "vitest";
 import { FastifyInstance } from "fastify";
 import { buildServer } from "@/server";
 import { paymentService } from "@/modules/payment";
-import { PaymentProvider } from "@/types/payment";
 import {
   PaymentInitiateRequest,
   PaymentIntentResult,

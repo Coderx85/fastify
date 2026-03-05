@@ -38411,15 +38411,17 @@ var OrderService = class {
         ...order,
         shippingAddress: shippingAddr,
         billingAddress: billingAddr,
-        items: orderItems.map((item) => ({
-          id: item.id,
-          orderId: item.orderId,
-          productId: item.productId,
-          quantity: item.quantity,
-          priceAtOrder: item.priceAtOrder / 100,
-          // Convert back to normal units
-          createdAt: item.createdAt
-        })),
+        items: orderItems.map(
+          (item) => ({
+            id: item.id,
+            orderId: item.orderId,
+            productId: item.productId,
+            quantity: item.quantity,
+            priceAtOrder: item.priceAtOrder / 100,
+            // Convert back to normal units
+            createdAt: item.createdAt
+          })
+        ),
         pricing
       });
     }
@@ -38450,7 +38452,10 @@ var OrderService = class {
       if (price !== void 0) {
         total += price * item.quantity;
       } else {
-        const fallbackPrice = await this.getProductPrice(item.productId, currency);
+        const fallbackPrice = await this.getProductPrice(
+          item.productId,
+          currency
+        );
         total += fallbackPrice * item.quantity;
       }
     }
