@@ -51,9 +51,11 @@ await esbuild.build({
   banner: {
     js: `
 import { createRequire } from 'module';
-import { fileURLToPath as __fileURLToPath } from 'url';
-import { dirname as __dirname_fn } from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 const require = createRequire(import.meta.url);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 `,
   },
 });
