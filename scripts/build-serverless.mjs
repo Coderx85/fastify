@@ -44,9 +44,14 @@ await esbuild.build({
   outfile: join(rootDir, "api/index.js"),
   plugins: [aliasPlugin],
   external: [
-    // Don't bundle native/binary modules
-    "@electric-sql/pglite",
+    // Don't bundle packages with native/binary modules or those that rely on node_modules at runtime
     "pg-native",
+    "@neondatabase/serverless",
+    "drizzle-orm",
+    "drizzle-orm/neon-http",
+    "drizzle-orm/neon-serverless",
+    "@fastify/*",
+    "fastify",
   ],
   banner: {
     js: `

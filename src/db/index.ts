@@ -1,6 +1,3 @@
-import { neon, Pool } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
-import { drizzle as drizzleWs } from "drizzle-orm/neon-serverless";
 import * as schema from "./schema";
 import { config } from "@/lib/config";
 
@@ -9,37 +6,112 @@ if (!config.DATABASE_URL) {
   console.error("DATABASE_URL is not configured!");
 }
 
-// Lazy-loaded database instances to avoid initialization errors in serverless environments
-let _db: ReturnType<typeof drizzle> | null = null;
-let _dbPool: ReturnType<typeof drizzleWs> | null = null;
+// Lazy database initialization - defer until first use
+let dbInstance: any = null;
+let dbPoolInstance: any = null;
 
-// HTTP driver – fast for single, non-interactive queries
+// Initialize the HTTP database client
+export async function initDb() {
+  if (dbInstance) return dbInstance;
+
+  const { neon } = await import("@neondatabase/serverless");
+  const { drizzle } = await import("drizzle-orm/neon-http");
+
+  const sql = neon(config.DATABASE_URL);
+  dbInstance = drizzle(sql, { schema });
+  return dbInstance;
+}
+
+// Initialize the WebSocket/pooled database client
+export async function initDbPool() {
+  if (dbPoolInstance) return dbPoolInstance;
+
+  const { Pool } = await import("@neondatabase/serverless");
+  const { drizzle: drizzleWs } = await import("drizzle-orm/neon-serverless");
+
+  const pool = new Pool({ connectionString: config.DATABASE_URL });
+  dbPoolInstance = drizzleWs(pool, { schema });
+  return dbPoolInstance;
+}
+
+// Synchronous getters (for backward compatibility with sync code)
 export function getDb() {
-  if (!_db) {
-    const sql = neon(config.DATABASE_URL);
-    _db = drizzle(sql, { schema });
+  if (!dbInstance) {
+    // Fallback for sync calls - this shouldn't happen in normal operation
+    console.warn("Database not initialized, returning null");
+    return null;
   }
-  return _db;
+  return dbInstance;
 }
 
-// WebSocket (pooled) driver – supports interactive transactions
 export function getDbPool() {
-  if (!_dbPool) {
-    const pool = new Pool({ connectionString: config.DATABASE_URL });
-    _dbPool = drizzleWs(pool, { schema });
+  if (!dbPoolInstance) {
+    console.warn("Database pool not initialized, returning null");
+    return null;
   }
-  return _dbPool;
+  return dbPoolInstance;
 }
 
-// Backward compatibility exports
-export const db = new Proxy({} as any, {
-  get: (target, prop) => {
-    return getDb()[prop as keyof typeof _db];
+// Export lazy-initialized instances for backward compatibility
+export const db = {
+  // Proxy pattern - methods will be called through async functions
+  async query(...args: any[]) {
+    const instance = await initDb();
+    return (instance as any).query(...args);
   },
-});
+  async select(...args: any[]) {
+    const instance = await initDb();
+    return (instance as any).select(...args);
+  },
+  async insert(...args: any[]) {
+    const instance = await initDb();
+    return (instance as any).insert(...args);
+  },
+  async update(...args: any[]) {
+    const instance = await initDb();
+    return (instance as any).update(...args);
+  },
+  async delete(...args: any[]) {
+    const instance = await initDb();
+    return (instance as any).delete(...args);
+  },
+  async batch(...args: any[]) {
+    const instance = await initDb();
+    return (instance as any).batch(...args);
+  },
+  async transaction(...args: any[]) {
+    const instance = await initDb();
+    return (instance as any).transaction(...args);
+  },
+} as any;
 
-export const dbPool = new Proxy({} as any, {
-  get: (target, prop) => {
-    return getDbPool()[prop as keyof typeof _dbPool];
+export const dbPool = {
+  async query(...args: any[]) {
+    const instance = await initDbPool();
+    return (instance as any).query(...args);
   },
-});
+  async select(...args: any[]) {
+    const instance = await initDbPool();
+    return (instance as any).select(...args);
+  },
+  async insert(...args: any[]) {
+    const instance = await initDbPool();
+    return (instance as any).insert(...args);
+  },
+  async update(...args: any[]) {
+    const instance = await initDbPool();
+    return (instance as any).update(...args);
+  },
+  async delete(...args: any[]) {
+    const instance = await initDbPool();
+    return (instance as any).delete(...args);
+  },
+  async batch(...args: any[]) {
+    const instance = await initDbPool();
+    return (instance as any).batch(...args);
+  },
+  async transaction(...args: any[]) {
+    const instance = await initDbPool();
+    return (instance as any).transaction(...args);
+  },
+} as any;
