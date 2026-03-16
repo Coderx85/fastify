@@ -1,4 +1,4 @@
-import { db, dbPool } from "@/db";
+import { db } from "@/db";
 import {
   productsTable as product,
   productsPriceTables,
@@ -109,7 +109,7 @@ export class ProductService implements IProductService {
 
   async createProduct(data: IProductInput): Promise<IProduct> {
     try {
-      return await dbPool.transaction(async (tx: any) => {
+      return await db.transaction(async (tx: any) => {
         // Insert the base product
         const [createdProduct] = await tx
           .insert(product)
@@ -192,7 +192,7 @@ export class ProductService implements IProductService {
   async getProductById(id: number): Promise<IProduct | null> {
     let baseProduct: IProduct | null = null;
     try {
-      await dbPool.transaction(async (tx: any) => {
+      await db.transaction(async (tx: any) => {
         const [productRecord] = await tx
           .select()
           .from(product)

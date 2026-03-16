@@ -26,10 +26,8 @@ import {
 
 // Mock database module
 vi.mock("@/db", () => ({
-  dbPool: {
-    transaction: vi.fn(),
-  },
   db: {
+    transaction: vi.fn(),
     select: vi.fn().mockImplementation(() => ({
       from: vi.fn().mockReturnThis(),
       where: vi.fn().mockReturnThis(),
@@ -48,12 +46,11 @@ vi.mock("@/db", () => ({
 describe("OrderService - Unit Tests", () => {
   let orderService: OrderService;
   let db: (typeof import("@/db"))["db"];
-  let dbPool: (typeof import("@/db"))["dbPool"];
 
   beforeEach(async () => {
     vi.clearAllMocks();
     orderService = new OrderService();
-    ({ db, dbPool } = await import("@/db"));
+    ({ db } = await import("@/db"));
   });
 
   afterEach(() => {
@@ -352,7 +349,7 @@ describe("OrderService - Unit Tests", () => {
         );
 
         // ensure transaction callbacks are executed so rejection propagates
-        (dbPool.transaction as any).mockImplementation(async (cb: any) => {
+        (db.transaction as any).mockImplementation(async (cb: any) => {
           // simple tx stub, not used because validateProductsExist will fail early
           const tx: any = {};
           return await cb(tx);
@@ -399,7 +396,7 @@ describe("OrderService - Unit Tests", () => {
         } as any);
 
         // make transaction callback invoke our minimal stub
-        (dbPool.transaction as any).mockImplementation(async (cb: any) => {
+        (db.transaction as any).mockImplementation(async (cb: any) => {
           // helper to generate a query chain returning array
           function queryChain(): any {
             const p: any = Promise.resolve([]);

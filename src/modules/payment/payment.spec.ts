@@ -9,8 +9,8 @@ import type { IOrderInput } from "@/modules/orders/order.definition";
 
 // prevent the real DB client from initializing (razorpay.service imports it)
 vi.mock("@/db", () => ({
-  dbPool: { transaction: vi.fn() },
   db: {
+    transaction: vi.fn(),
     select: vi.fn().mockReturnThis(),
     insert: vi.fn().mockReturnThis(),
     update: vi.fn().mockReturnThis(),

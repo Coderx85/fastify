@@ -1,4 +1,4 @@
-import { db, dbPool } from "@/db";
+import { db } from "@/db";
 import {
   ordersTable,
   addressesTable,
@@ -349,7 +349,7 @@ export class OrderService implements IOrderService {
     // Validate input
     this.validateOrderInput(data);
 
-    return await dbPool.transaction(async (tx: any) => {
+    return await db.transaction(async (tx: any) => {
       // Get unique product IDs
       const productIds = [...new Set(data.products.map((p) => p.productId))];
 
