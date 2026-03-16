@@ -95,7 +95,7 @@ Note:
   ```ts
   // Mock database module
   vi.mock("@/db", () => ({
-    dbPool: {
+    db: {
       transaction: vi.fn(),
     },
     db: {

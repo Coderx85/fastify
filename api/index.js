@@ -37517,16 +37517,13 @@ var config2 = {
 };
 
 // src/db/index.ts
-import { neon, Pool } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
-import { drizzle as drizzleWs } from "drizzle-orm/neon-serverless";
+import { Pool } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/node-postgres";
 if (!config2.DATABASE_URL) {
   console.error("DATABASE_URL is not configured!");
 }
-var sql = neon(config2.DATABASE_URL);
-var db = drizzle(sql, { schema: schema_exports });
 var pool = new Pool({ connectionString: config2.DATABASE_URL });
-var dbPool = drizzleWs(pool, { schema: schema_exports });
+var db = drizzle(pool, { schema: schema_exports });
 
 // src/modules/payment/razorpay.service.ts
 import { eq as eq4 } from "drizzle-orm";
@@ -37591,7 +37588,7 @@ function generateUUID() {
 }
 
 // src/modules/users/user.service.ts
-import { eq, sql as sql2 } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 var DuplicateUserError = class _DuplicateUserError extends Error {
   code = "23505";
   constructor(email3, contact) {
@@ -37621,9 +37618,9 @@ var selectedColumns = {
   createdAt: usersTable.createdAt,
   updatedAt: usersTable.updatedAt
 };
-var getUserByIdStatement = db.select(selectedColumns).from(usersTable).where(eq(usersTable.id, sql2.placeholder("id"))).prepare("get_user_by_id");
-var getUserByEmailStatement = db.select(selectedColumns).from(usersTable).where(eq(usersTable.email, sql2.placeholder("email"))).prepare("get_user_by_email");
-var getUserForAuthStatement = db.select().from(usersTable).where(eq(usersTable.email, sql2.placeholder("email"))).prepare("get_user_for_auth");
+var getUserByIdStatement = db.select(selectedColumns).from(usersTable).where(eq(usersTable.id, sql.placeholder("id"))).prepare("get_user_by_id");
+var getUserByEmailStatement = db.select(selectedColumns).from(usersTable).where(eq(usersTable.email, sql.placeholder("email"))).prepare("get_user_by_email");
+var getUserForAuthStatement = db.select().from(usersTable).where(eq(usersTable.email, sql.placeholder("email"))).prepare("get_user_for_auth");
 var UserService = class {
   async getUserById(id) {
     try {
@@ -38044,7 +38041,7 @@ var ProductService = class {
   }
   async createProduct(data) {
     try {
-      return await dbPool.transaction(async (tx) => {
+      return await db.transaction(async (tx) => {
         const [createdProduct] = await tx.insert(productsTable).values({
           name: data.name,
           description: data.description,
@@ -38105,7 +38102,7 @@ var ProductService = class {
   async getProductById(id) {
     let baseProduct = null;
     try {
-      await dbPool.transaction(async (tx) => {
+      await db.transaction(async (tx) => {
         const [productRecord] = await tx.select().from(productsTable).where(eq2(productsTable.id, id)).limit(1);
         if (!productRecord) {
           throw new Error(`Product with ID ${id} not found`, {
@@ -38420,7 +38417,7 @@ var OrderService = class {
    */
   async createOrder(data, userId) {
     this.validateOrderInput(data);
-    return await dbPool.transaction(async (tx) => {
+    return await db.transaction(async (tx) => {
       const productIds = [...new Set(data.products.map((p) => p.productId))];
       const productMap = await this.validateProductsExist(productIds);
       if (!productMap) {
@@ -39515,6 +39512,177 @@ async function ordersRoute(fastify) {
   });
 }
 
+// src/routes/api/users/index.ts
+import { eq as eq5 } from "drizzle-orm";
+
+// src/schema/user.schema.ts
+var createUserSchema = {
+  body: external_exports.object({
+    name: external_exports.string().min(2),
+    email: external_exports.string().email(),
+    password: external_exports.string().min(6)
+  })
+};
+var getUserSchema = {
+  params: external_exports.object({
+    id: external_exports.string().transform((val) => parseInt(val, 10))
+  })
+};
+var deleteUserSchema = {
+  params: external_exports.object({
+    id: external_exports.string().transform((val) => parseInt(val, 10))
+  })
+};
+var getUserByEmailSchema = {
+  querystring: external_exports.object({
+    email: external_exports.string().email()
+  })
+};
+var getOrderByUserIdSchema = {
+  params: external_exports.object({
+    id: external_exports.string().transform((val) => parseInt(val, 10))
+  }),
+  querystring: external_exports.object({
+    orderId: external_exports.string().transform((val) => parseInt(val, 10))
+  }),
+  response: {
+    200: successResponseSchema(orderResultSchema)
+  }
+};
+var updateUserSchema = {
+  params: external_exports.object({
+    id: external_exports.string().transform((val) => parseInt(val, 10))
+  }),
+  body: createUpdateSchema(usersTable).omit({
+    id: true,
+    password: true,
+    createdAt: true,
+    updatedAt: true
+  }).refine(
+    (data) => Object.keys(data).length > 0,
+    "At least one field must be provided for update"
+  ).safeExtend({
+    email: external_exports.string().email().optional(),
+    contact: external_exports.string().length(10, "Contact must be exactly 10 digits").transform((val) => val.replace(/\D/g, "")).optional()
+  })
+};
+var deleteUserResponseSchema = {
+  params: external_exports.object({
+    id: external_exports.string().transform((val) => parseInt(val, 10))
+  }),
+  200: successResponseSchema(
+    external_exports.object({
+      message: external_exports.string()
+    })
+  )
+};
+
+// src/lib/hash.ts
+var bcrpyt = __toESM(require_bcrypt());
+var hashPassword = (password) => {
+  const saltRounds = bcrpyt.genSaltSync();
+  const hash2 = bcrpyt.hashSync(password, saltRounds);
+  return hash2.toString();
+};
+var verifyPassword = (password, hash2) => bcrpyt.compareSync(password, hash2);
+
+// src/routes/api/users/index.ts
+async function usersRoute(fastify) {
+  fastify.withTypeProvider().get(
+    "/",
+    {
+      schema: getUserByEmailSchema
+    },
+    async (request, reply) => {
+      if (request.query.email) {
+        const user = await db.select({
+          id: usersTable.id,
+          name: usersTable.name,
+          email: usersTable.email
+        }).from(usersTable).where(eq5(usersTable.email, request.query.email));
+        return sendSuccess(user, "User retrieved successfully", reply, 200);
+      }
+      const allUsers = await db.select({
+        id: usersTable.id,
+        name: usersTable.name,
+        email: usersTable.email
+      }).from(usersTable);
+      sendSuccess(allUsers, "Users retrieved successfully", reply, 200);
+    }
+  );
+  fastify.withTypeProvider().post(
+    "/",
+    {
+      schema: createUserSchema
+    },
+    async (request, reply) => {
+      const { name, email: email3, password } = request.body;
+      const existingUser = await db.select().from(usersTable).where(eq5(usersTable.email, email3));
+      if (existingUser.length > 0) {
+        return sendError(
+          "User with this email already exists",
+          "CONFLICT",
+          reply,
+          409
+        );
+      }
+      const hashedPassword = hashPassword(password);
+      const newUser = await db.insert(usersTable).values({
+        name,
+        email: email3,
+        password: hashedPassword,
+        contact: "wewewe"
+        // Placeholder, adjust as needed
+      }).returning({
+        id: usersTable.id,
+        name: usersTable.name,
+        email: usersTable.email
+      });
+      sendSuccess(newUser[0], "User created successfully", reply, 201);
+    }
+  );
+  fastify.withTypeProvider().put(
+    "/:id",
+    {
+      schema: updateUserSchema
+    },
+    async (request, reply) => {
+      const { id } = request.params;
+      const { name, email: email3 } = request.body;
+      const updatedUser = await db.update(usersTable).set({ name, email: email3 }).where(eq5(usersTable.id, id)).returning({
+        id: usersTable.id,
+        name: usersTable.name,
+        email: usersTable.email
+      });
+      if (updatedUser.length === 0) {
+        return sendError("User not found", "NOT_FOUND", reply, 404);
+      }
+      sendSuccess(updatedUser[0], "User updated successfully", reply, 200);
+    }
+  );
+  fastify.withTypeProvider().delete(
+    "/:id",
+    {
+      schema: deleteUserSchema
+    },
+    async (request, reply) => {
+      const { id } = request.params;
+      const deletedUser = await db.delete(usersTable).where(eq5(usersTable.id, id)).returning({
+        id: usersTable.id
+      });
+      if (deletedUser.length === 0) {
+        return sendError("User not found", "NOT_FOUND", reply, 404);
+      }
+      sendSuccess(
+        { id: deletedUser[0].id, deleted: true },
+        "User deleted successfully",
+        reply,
+        200
+      );
+    }
+  );
+}
+
 // src/dtos/user.dto.ts
 var UserDTO = userSelectScehema.pick({
   id: true,
@@ -39562,15 +39730,6 @@ var resetPasswordSchema = {
   })
 };
 var authSchema = loginSchema.body;
-
-// src/lib/hash.ts
-var bcrpyt = __toESM(require_bcrypt());
-var hashPassword = (password) => {
-  const saltRounds = bcrpyt.genSaltSync();
-  const hash2 = bcrpyt.hashSync(password, saltRounds);
-  return hash2.toString();
-};
-var verifyPassword = (password, hash2) => bcrpyt.compareSync(password, hash2);
 
 // src/lib/token.ts
 var import_jsonwebtoken = __toESM(require_jsonwebtoken());
@@ -39707,11 +39866,11 @@ async function registerRoute(fastify) {
 }
 
 // src/routes/api/auth/forgot-password/handler.ts
-import { eq as eq5 } from "drizzle-orm";
+import { eq as eq6 } from "drizzle-orm";
 var forgotPasswordHandler = {
   handler: async (request, reply) => {
     const { email: email3 } = request.body;
-    const foundUsers = await db.select().from(usersTable).where(eq5(usersTable.email, email3));
+    const foundUsers = await db.select().from(usersTable).where(eq6(usersTable.email, email3));
     const user = foundUsers[0];
     if (user) {
       const token = generateResetToken(user.id);
@@ -39735,7 +39894,7 @@ async function forgotPasswordRoute(fastify) {
 }
 
 // src/routes/api/auth/reset-password/handler.ts
-import { eq as eq6 } from "drizzle-orm";
+import { eq as eq7 } from "drizzle-orm";
 var resetPasswordHandler = {
   handler: async (request, reply) => {
     const { token, password } = request.body;
@@ -39743,13 +39902,13 @@ var resetPasswordHandler = {
     if (!userId) {
       return sendError("INVALID OR EXPIRED TOKEN", "unauthorized", reply, 401);
     }
-    const foundUsers = await db.select().from(usersTable).where(eq6(usersTable.id, userId));
+    const foundUsers = await db.select().from(usersTable).where(eq7(usersTable.id, userId));
     const user = foundUsers[0];
     if (!user) {
       return sendError("USER NOT FOUND", "not_found", reply, 404);
     }
     const hashedPassword = hashPassword(password);
-    await db.update(usersTable).set({ password: hashedPassword }).where(eq6(usersTable.id, userId));
+    await db.update(usersTable).set({ password: hashedPassword }).where(eq7(usersTable.id, userId));
     deleteResetToken(token);
     sendSuccess(
       { passwordReset: true },
@@ -39768,166 +39927,166 @@ async function resetPasswordRoute(fastify) {
   });
 }
 
-// src/routes/api/users/index.ts
-import { eq as eq7 } from "drizzle-orm";
-
-// src/schema/user.schema.ts
-var createUserSchema = {
-  body: external_exports.object({
-    name: external_exports.string().min(2),
-    email: external_exports.string().email(),
-    password: external_exports.string().min(6)
-  })
-};
-var getUserSchema = {
-  params: external_exports.object({
-    id: external_exports.string().transform((val) => parseInt(val, 10))
-  })
-};
-var deleteUserSchema = {
-  params: external_exports.object({
-    id: external_exports.string().transform((val) => parseInt(val, 10))
-  })
-};
-var getUserByEmailSchema = {
-  querystring: external_exports.object({
-    email: external_exports.string().email()
-  })
-};
-var getOrderByUserIdSchema = {
-  params: external_exports.object({
-    id: external_exports.string().transform((val) => parseInt(val, 10))
-  }),
-  querystring: external_exports.object({
-    orderId: external_exports.string().transform((val) => parseInt(val, 10))
-  }),
-  response: {
-    200: successResponseSchema(orderResultSchema)
-  }
-};
-var updateUserSchema = {
-  params: external_exports.object({
-    id: external_exports.string().transform((val) => parseInt(val, 10))
-  }),
-  body: createUpdateSchema(usersTable).omit({
-    id: true,
-    password: true,
-    createdAt: true,
-    updatedAt: true
-  }).refine(
-    (data) => Object.keys(data).length > 0,
-    "At least one field must be provided for update"
-  ).safeExtend({
-    email: external_exports.string().email().optional(),
-    contact: external_exports.string().length(10, "Contact must be exactly 10 digits").transform((val) => val.replace(/\D/g, "")).optional()
-  })
-};
-var deleteUserResponseSchema = {
-  params: external_exports.object({
-    id: external_exports.string().transform((val) => parseInt(val, 10))
-  }),
-  200: successResponseSchema(
-    external_exports.object({
-      message: external_exports.string()
-    })
-  )
-};
-
-// src/routes/api/users/index.ts
-async function usersRoute(fastify) {
-  fastify.withTypeProvider().get(
-    "/",
-    {
-      schema: getUserByEmailSchema
-    },
-    async (request, reply) => {
-      if (request.query.email) {
-        const user = await db.select({
-          id: usersTable.id,
-          name: usersTable.name,
-          email: usersTable.email
-        }).from(usersTable).where(eq7(usersTable.email, request.query.email));
-        return sendSuccess(user, "User retrieved successfully", reply, 200);
-      }
-      const allUsers = await db.select({
-        id: usersTable.id,
-        name: usersTable.name,
-        email: usersTable.email
-      }).from(usersTable);
-      sendSuccess(allUsers, "Users retrieved successfully", reply, 200);
+// src/routes/api/users/:id/handler.ts
+var UserController = class {
+  async createUserHandler(request, reply) {
+    try {
+      const userData = request.body;
+      const result = await userService.createUser(userData);
+      sendSuccess(result, "User created successfully", reply, 201);
+    } catch (error48) {
+      request.log.error(error48);
+      return sendError(
+        "Failed to create user",
+        "INTERNAL_SERVER_ERROR",
+        reply,
+        500
+      );
     }
-  );
-  fastify.withTypeProvider().post(
-    "/",
-    {
-      schema: createUserSchema
-    },
-    async (request, reply) => {
-      const { name, email: email3, password } = request.body;
-      const existingUser = await db.select().from(usersTable).where(eq7(usersTable.email, email3));
-      if (existingUser.length > 0) {
+  }
+  async getUserByIdHandler(request, reply) {
+    try {
+      const { userId } = request.params;
+      const user = await userService.getUserById(userId);
+      if (!user) {
+        return sendError("User not found", "USER_NOT_FOUND", reply, 404);
+      }
+      sendSuccess(user, "User retrieved successfully", reply, 200);
+    } catch (error48) {
+      request.log.error(error48);
+      return sendError(
+        "Failed to retrieve user",
+        "INTERNAL_SERVER_ERROR",
+        reply,
+        500
+      );
+    }
+  }
+  async updateUserHandler(request, reply) {
+    try {
+      const { id } = request.params;
+      const updateData = request.body;
+      const updatedUser = await userService.updateUser(id, updateData);
+      sendSuccess(updatedUser, "User updated successfully", reply, 200);
+    } catch (error48) {
+      const code = getCauseCode(error48) || error48?.code;
+      if (code === "USER_NOT_FOUND" || code === "NOT_FOUND") {
+        return sendError("User not found", "USER_NOT_FOUND", reply, 404);
+      }
+      request.log.error(error48);
+      return sendError(
+        "Failed to update user",
+        "INTERNAL_SERVER_ERROR",
+        reply,
+        500
+      );
+    }
+  }
+  async getOrderByUserIdHandler(request, reply) {
+    try {
+      const { id: userId } = request.params;
+      const { orderId } = request.query;
+      const orders = await orderService.getOrdersByUserId(orderId, userId);
+      if (!orders) {
         return sendError(
-          "User with this email already exists",
-          "CONFLICT",
+          "Order not found for this user",
+          "ORDER_NOT_FOUND",
           reply,
-          409
+          404
         );
       }
-      const hashedPassword = hashPassword(password);
-      const newUser = await db.insert(usersTable).values({
-        name,
-        email: email3,
-        password: hashedPassword,
-        contact: "wewewe"
-        // Placeholder, adjust as needed
-      }).returning({
-        id: usersTable.id,
-        name: usersTable.name,
-        email: usersTable.email
-      });
-      sendSuccess(newUser[0], "User created successfully", reply, 201);
+      sendSuccess(orders, "Orders retrieved successfully", reply, 200);
+    } catch (error48) {
+      request.log.error(error48);
+      return sendError(
+        "Failed to retrieve order",
+        "INTERNAL_SERVER_ERROR",
+        reply,
+        500
+      );
     }
-  );
-  fastify.withTypeProvider().put(
-    "/:id",
-    {
-      schema: updateUserSchema
-    },
-    async (request, reply) => {
-      const { id } = request.params;
-      const { name, email: email3 } = request.body;
-      const updatedUser = await db.update(usersTable).set({ name, email: email3 }).where(eq7(usersTable.id, id)).returning({
-        id: usersTable.id,
-        name: usersTable.name,
-        email: usersTable.email
-      });
-      if (updatedUser.length === 0) {
-        return sendError("User not found", "NOT_FOUND", reply, 404);
+  }
+  async getUserByEmailHandler(request, reply) {
+    try {
+      const { email: email3 } = request.query;
+      if (!email3) {
+        return sendError(
+          "Email query parameter is required",
+          "BAD_REQUEST",
+          reply,
+          400
+        );
       }
-      sendSuccess(updatedUser[0], "User updated successfully", reply, 200);
-    }
-  );
-  fastify.withTypeProvider().delete(
-    "/:id",
-    {
-      schema: deleteUserSchema
-    },
-    async (request, reply) => {
-      const { id } = request.params;
-      const deletedUser = await db.delete(usersTable).where(eq7(usersTable.id, id)).returning({
-        id: usersTable.id
-      });
-      if (deletedUser.length === 0) {
-        return sendError("User not found", "NOT_FOUND", reply, 404);
+      const user = await userService.findByEmail(email3);
+      if (!user) {
+        return sendError("User not found", "USER_NOT_FOUND", reply, 404);
       }
-      sendSuccess(
-        { id: deletedUser[0].id, deleted: true },
-        "User deleted successfully",
+      return sendSuccess(
+        { message: "User retrieved successfully" },
+        "User retrieved successfully",
         reply,
         200
       );
+    } catch (error48) {
+      request.log.error(error48);
+      return sendError(
+        "Failed to retrieve user by email",
+        "INTERNAL_SERVER_ERROR",
+        reply,
+        500
+      );
     }
-  );
+  }
+  async getAllUsersHandler(request, reply) {
+    try {
+      const users = await userService.getAllUsers();
+      sendSuccess(users, "Users retrieved successfully", reply, 200);
+    } catch (error48) {
+      request.log.error(error48);
+      return sendError(
+        "Failed to retrieve user",
+        "INTERNAL_SERVER_ERROR",
+        reply,
+        500
+      );
+    }
+  }
+  async deleteUserHandler(request, reply) {
+    try {
+      const { id } = request.params;
+      const user = await userService.deleteUser(id);
+      sendSuccess(null, "User deleted successfully", reply, 200);
+    } catch (error48) {
+      const code = getCauseCode(error48) || error48?.code;
+      if (code === "USER_NOT_FOUND" || code === "NOT_FOUND") {
+        return sendError("User not found", "USER_NOT_FOUND", reply, 404);
+      }
+      request.log.error(error48);
+      return sendError(
+        "Failed to delete user",
+        "INTERNAL_SERVER_ERROR",
+        reply,
+        500
+      );
+    }
+  }
+};
+var userController = new UserController();
+
+// src/routes/api/admin/users/index.ts
+async function userRoute(fastify) {
+  fastify.withTypeProvider().put("/:id", {
+    schema: updateUserSchema,
+    handler: userController.updateUserHandler
+  });
+  fastify.withTypeProvider().get("/", {
+    schema: {
+      querystring: zod_default.object({
+        email: zod_default.string().email().optional()
+      })
+    },
+    handler: userController.getAllUsersHandler
+  });
 }
 
 // src/routes/checkout/index.ts
@@ -72588,17 +72747,17 @@ app.register(cors, {
 app.register(rootRoute);
 app.register(healthRoute, { prefix: "/health" });
 app.register(paymentRoutes, { prefix: "/api/payment" });
-app.register(checkoutRoutes, { prefix: "/checkout" });
-app.register(checkoutRoutes2, { prefix: "/api/checkout" });
 app.register(productsRoute, { prefix: "/api/products" });
-app.register(usersRoute, { prefix: "/api/users" });
-app.register(webhooksRoutes, { prefix: "/api/webhooks" });
-app.register(ordersRoute, { prefix: "/api/order" });
 app.register(ordersRoute, { prefix: "/api/orders" });
+app.register(usersRoute, { prefix: "/api/users" });
 app.register(loginRoute, { prefix: "/api/auth/login" });
 app.register(registerRoute, { prefix: "/api/auth/register" });
 app.register(forgotPasswordRoute, { prefix: "/api/auth/forgot-password" });
 app.register(resetPasswordRoute, { prefix: "/api/auth/reset-password" });
+app.register(userRoute, { prefix: "/api/admin/users" });
+app.register(checkoutRoutes, { prefix: "/checkout" });
+app.register(checkoutRoutes2, { prefix: "/api/checkout" });
+app.register(webhooksRoutes, { prefix: "/api/webhooks" });
 var serverless_default = async (req, res) => {
   await app.ready();
   app.server.emit("request", req, res);
